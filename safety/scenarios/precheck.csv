@@ -180,47 +180,49 @@ P178,worst_wins,72,265,155,70,manual,manual,,,,,,,,,,,REMEASURE,,"265/155, 심�
 P179,worst_wins,72,265,155,110,manual,manual,,,,,,,,,,,REMEASURE,,"265/155, 심박 110"
 P180,worst_wins,72,265,155,125,manual,manual,,,,,,,,,,,RED,,"265/155, 심박 125"
 P181,worst_wins,72,265,155,225,manual,manual,,,,,,,,,,,REMEASURE,,"265/155, 심박 225"
-P182,source,72,130,80,70,watch,manual,,,,,,,,,,,REMEASURE,PRE_BP_SOURCE_NOT_ALLOWED,워치 혈압은 판정 금지
-P183,source,72,190,80,70,watch,manual,,,,,,,,,,,REMEASURE,PRE_BP_SOURCE_NOT_ALLOWED,워치 혈압이 높아도 판정 대신 재측정
-P184,source,72,130,80,125,watch,manual,,,,,,,,,,,RED,,워치 혈압 + 빨강 심박(상완형 맥박)
-P185,source,72,130,80,70,watch,manual,dizziness,,,,,,,,,,RED,,워치 혈압 + 빨강 증상
-P186,source,72,130,80,70,ble_upper_arm,ble_upper_arm,,,,,,,,,,,GREEN,,BLE 상완형 혈압계
-P187,source,72,130,80,70,manual,chest_strap,,,,,,,,,,,GREEN,,가슴 스트랩 심박
-P188,source,72,130,80,70,manual,watch,,,,,,,,,,,REMEASURE,PRE_HR_SOURCE_LOW_GRADE,워치 심박이 정상이어도 안전 근거 아님
-P189,source,72,130,80,110,manual,watch,,,,,,,,,,,YELLOW,,워치 심박 노랑은 반영
-P190,source,72,130,80,125,manual,watch,,,,,,,,,,,RED,,워치 심박 빨강은 반영
-P191,source,72,,80,70,manual,manual,,,,,,,,,,,REMEASURE,PRE_MISSING_VALUE,수축기 누락
-P192,source,72,130,80,,manual,manual,,,,,,,,,,,REMEASURE,PRE_MISSING_VALUE,심박 누락
-P193,source,72,,80,70,manual,manual,shortness_of_breath,,,,,,,,,,RED,,누락 + 빨강 증상
-P194,gate,72,130,80,70,manual,manual,,,unstable_angina,,,,,,,,BLOCKED,GATE_CONDITION_NEEDS_CLEARANCE,"unstable_angina, 확인서 없음"
-P195,gate,72,130,80,70,manual,manual,,,uncontrolled_arrhythmia,,,,,,,,BLOCKED,GATE_CONDITION_NEEDS_CLEARANCE,"uncontrolled_arrhythmia, 확인서 없음"
-P196,gate,72,130,80,70,manual,manual,,,worsening_heart_failure,,,,,,,,BLOCKED,GATE_CONDITION_NEEDS_CLEARANCE,"worsening_heart_failure, 확인서 없음"
-P197,gate,72,130,80,70,manual,manual,,,recent_myocardial_infarction,,,,,,,,BLOCKED,GATE_CONDITION_NEEDS_CLEARANCE,"recent_myocardial_infarction, 확인서 없음"
-P198,gate,72,130,80,70,manual,manual,,,recent_cardiac_surgery,,,,,,,,BLOCKED,GATE_CONDITION_NEEDS_CLEARANCE,"recent_cardiac_surgery, 확인서 없음"
-P199,gate,72,130,80,70,manual,manual,,,recent_stroke,,,,,,,,BLOCKED,GATE_CONDITION_NEEDS_CLEARANCE,"recent_stroke, 확인서 없음"
-P200,gate,72,130,80,70,manual,manual,,,severe_aortic_stenosis,,,,,,,,BLOCKED,GATE_CONDITION_NEEDS_CLEARANCE,"severe_aortic_stenosis, 확인서 없음"
-P201,gate,72,130,80,70,manual,manual,,,syncope_history,,,,,,,,BLOCKED,GATE_CONDITION_NEEDS_CLEARANCE,"syncope_history, 확인서 없음"
-P202,gate,72,130,80,70,manual,manual,,,unstable_angina,,1,,,,,,GREEN,,"unstable_angina, 의사 확인서 있음"
-P203,gate,72,130,80,70,manual,manual,,,uncontrolled_arrhythmia,,1,,,,,,GREEN,,"uncontrolled_arrhythmia, 의사 확인서 있음"
-P204,gate,72,130,80,70,manual,manual,,,worsening_heart_failure,,1,,,,,,GREEN,,"worsening_heart_failure, 의사 확인서 있음"
-P205,gate,72,130,80,70,manual,manual,,,recent_myocardial_infarction,,1,,,,,,GREEN,,"recent_myocardial_infarction, 의사 확인서 있음"
-P206,gate,72,130,80,70,manual,manual,,,,1,,,,,,,BLOCKED,GATE_PARQ_RISK,문진 위험 응답
-P207,gate,72,130,80,70,manual,manual,,,,1,1,,,,,,GREEN,,문진 위험 + 확인서
-P208,gate,72,130,80,70,manual,manual,,,,,,pacemaker,,,,,BLOCKED,GATE_DEVICE_NEEDS_HR_CEILING,"심박조율기, 심박 상한 없음"
-P209,gate,72,130,80,70,manual,manual,,,,,1,icd,,,,,BLOCKED,GATE_DEVICE_NEEDS_HR_CEILING,"ICD, 확인서 있어도 상한 없으면 잠금"
-P210,gate,72,130,80,70,manual,manual,,,,,,pacemaker,,,,110,GREEN,,심박조율기 + 의사 상한
-P211,gate,72,190,80,70,manual,manual,,,recent_stroke,,,,,,,,BLOCKED,,게이트가 빨강 수치보다 우선
-P212,doctor_limit,72,149,80,70,manual,manual,,,,,,,150,,,,GREEN,,"수축기 한도 150, 149"
-P213,doctor_limit,72,150,80,70,manual,manual,,,,,,,150,,,,RED,PRE_OVER_DOCTOR_LIMIT,"수축기 한도 150, 150"
-P214,doctor_limit,72,155,80,70,manual,manual,,,,,,,150,,,,RED,,"수축기 한도 150, 155"
-P215,doctor_limit,72,165,80,70,manual,manual,,,,,,,150,,,,RED,,"수축기 한도 150, 165(원래 노랑)"
-P216,doctor_limit,72,185,80,70,manual,manual,,,,,,,200,,,,RED,DOCTOR_LIMIT_LOOSER_IGNORED,"느슨한 한도 200은 무시, 185는 빨강"
-P217,doctor_limit,72,175,80,70,manual,manual,,,,,,,200,,,,YELLOW,DOCTOR_LIMIT_LOOSER_IGNORED,"느슨한 한도 200은 무시, 175는 노랑"
-P218,doctor_limit,72,179,80,70,manual,manual,,,,,,,180,,,,YELLOW,,"기본과 같은 한도 180, 179"
-P219,doctor_limit,72,180,80,70,manual,manual,,,,,,,180,,,,RED,,"기본과 같은 한도 180, 180"
-P220,doctor_limit,72,130,89,70,manual,manual,,,,,,,,90,,,GREEN,,"이완기 한도 90, 89"
-P221,doctor_limit,72,130,90,70,manual,manual,,,,,,,,90,,,RED,,"이완기 한도 90, 90"
-P222,doctor_limit,72,130,80,89,manual,manual,,,,,,,,,90,,GREEN,,"심박 한도 90, 89"
-P223,doctor_limit,72,130,80,90,manual,manual,,,,,,,,,90,,RED,,"심박 한도 90, 90"
-P224,doctor_limit,72,130,80,125,manual,manual,,,,,,,,,130,,RED,,"느슨한 심박 한도 130은 무시, 125는 빨강"
-P225,doctor_limit,72,265,80,70,manual,manual,,,,,,,150,,,,REMEASURE,,한도가 있어도 비현실 값은 재측정
+P182,source,72,130,80,70,watch,manual,,,,,,,,,,,YELLOW,PRE_BP_SOURCE_LOW_GRADE,워치 혈압이 정상이어도 가볍게(B 등급)
+P183,source,72,190,80,70,watch,manual,,,,,,,,,,,RED,PRE_SBP_HIGH,워치 혈압이 높으면 그대로 빨강
+P184,source,72,165,80,70,watch,manual,,,,,,,,,,,YELLOW,PRE_SBP_ELEVATED,워치 혈압 노랑은 그대로 노랑
+P185,source,72,130,80,70,watch,watch,,,,,,,,,,,YELLOW,,워치 혈압 + 워치 심박 모두 정상이면 노랑
+P186,source,72,130,80,125,watch,manual,,,,,,,,,,,RED,,워치 혈압 + 빨강 심박(상완형 맥박)
+P187,source,72,130,80,70,watch,manual,dizziness,,,,,,,,,,RED,,워치 혈압 + 빨강 증상
+P188,source,72,130,80,70,ble_upper_arm,ble_upper_arm,,,,,,,,,,,GREEN,,BLE 상완형 혈압계
+P189,source,72,130,80,70,manual,chest_strap,,,,,,,,,,,GREEN,,가슴 스트랩 심박
+P190,source,72,130,80,70,manual,watch,,,,,,,,,,,YELLOW,PRE_HR_SOURCE_LOW_GRADE,워치 심박이 정상이어도 가볍게(B 등급)
+P191,source,72,130,80,110,manual,watch,,,,,,,,,,,YELLOW,,워치 심박 노랑은 반영
+P192,source,72,130,80,125,manual,watch,,,,,,,,,,,RED,,워치 심박 빨강은 반영
+P193,source,72,,80,70,manual,manual,,,,,,,,,,,REMEASURE,PRE_MISSING_VALUE,수축기 누락
+P194,source,72,130,80,,manual,manual,,,,,,,,,,,REMEASURE,PRE_MISSING_VALUE,심박 누락
+P195,source,72,,80,70,manual,manual,shortness_of_breath,,,,,,,,,,RED,,누락 + 빨강 증상
+P196,gate,72,130,80,70,manual,manual,,,unstable_angina,,,,,,,,BLOCKED,GATE_CONDITION_NEEDS_CLEARANCE,"unstable_angina, 확인서 없음"
+P197,gate,72,130,80,70,manual,manual,,,uncontrolled_arrhythmia,,,,,,,,BLOCKED,GATE_CONDITION_NEEDS_CLEARANCE,"uncontrolled_arrhythmia, 확인서 없음"
+P198,gate,72,130,80,70,manual,manual,,,worsening_heart_failure,,,,,,,,BLOCKED,GATE_CONDITION_NEEDS_CLEARANCE,"worsening_heart_failure, 확인서 없음"
+P199,gate,72,130,80,70,manual,manual,,,recent_myocardial_infarction,,,,,,,,BLOCKED,GATE_CONDITION_NEEDS_CLEARANCE,"recent_myocardial_infarction, 확인서 없음"
+P200,gate,72,130,80,70,manual,manual,,,recent_cardiac_surgery,,,,,,,,BLOCKED,GATE_CONDITION_NEEDS_CLEARANCE,"recent_cardiac_surgery, 확인서 없음"
+P201,gate,72,130,80,70,manual,manual,,,recent_stroke,,,,,,,,BLOCKED,GATE_CONDITION_NEEDS_CLEARANCE,"recent_stroke, 확인서 없음"
+P202,gate,72,130,80,70,manual,manual,,,severe_aortic_stenosis,,,,,,,,BLOCKED,GATE_CONDITION_NEEDS_CLEARANCE,"severe_aortic_stenosis, 확인서 없음"
+P203,gate,72,130,80,70,manual,manual,,,syncope_history,,,,,,,,BLOCKED,GATE_CONDITION_NEEDS_CLEARANCE,"syncope_history, 확인서 없음"
+P204,gate,72,130,80,70,manual,manual,,,unstable_angina,,1,,,,,,GREEN,,"unstable_angina, 의사 확인서 있음"
+P205,gate,72,130,80,70,manual,manual,,,uncontrolled_arrhythmia,,1,,,,,,GREEN,,"uncontrolled_arrhythmia, 의사 확인서 있음"
+P206,gate,72,130,80,70,manual,manual,,,worsening_heart_failure,,1,,,,,,GREEN,,"worsening_heart_failure, 의사 확인서 있음"
+P207,gate,72,130,80,70,manual,manual,,,recent_myocardial_infarction,,1,,,,,,GREEN,,"recent_myocardial_infarction, 의사 확인서 있음"
+P208,gate,72,130,80,70,manual,manual,,,,1,,,,,,,BLOCKED,GATE_PARQ_RISK,문진 위험 응답
+P209,gate,72,130,80,70,manual,manual,,,,1,1,,,,,,GREEN,,문진 위험 + 확인서
+P210,gate,72,130,80,70,manual,manual,,,,,,pacemaker,,,,,BLOCKED,GATE_DEVICE_NEEDS_HR_CEILING,"심박조율기, 심박 상한 없음"
+P211,gate,72,130,80,70,manual,manual,,,,,1,icd,,,,,BLOCKED,GATE_DEVICE_NEEDS_HR_CEILING,"ICD, 확인서 있어도 상한 없으면 잠금"
+P212,gate,72,130,80,70,manual,manual,,,,,,pacemaker,,,,110,GREEN,,심박조율기 + 의사 상한
+P213,gate,72,190,80,70,manual,manual,,,recent_stroke,,,,,,,,BLOCKED,,게이트가 빨강 수치보다 우선
+P214,doctor_limit,72,149,80,70,manual,manual,,,,,,,150,,,,GREEN,,"수축기 한도 150, 149"
+P215,doctor_limit,72,150,80,70,manual,manual,,,,,,,150,,,,RED,PRE_OVER_DOCTOR_LIMIT,"수축기 한도 150, 150"
+P216,doctor_limit,72,155,80,70,manual,manual,,,,,,,150,,,,RED,,"수축기 한도 150, 155"
+P217,doctor_limit,72,165,80,70,manual,manual,,,,,,,150,,,,RED,,"수축기 한도 150, 165(원래 노랑)"
+P218,doctor_limit,72,185,80,70,manual,manual,,,,,,,200,,,,RED,DOCTOR_LIMIT_LOOSER_IGNORED,"느슨한 한도 200은 무시, 185는 빨강"
+P219,doctor_limit,72,175,80,70,manual,manual,,,,,,,200,,,,YELLOW,DOCTOR_LIMIT_LOOSER_IGNORED,"느슨한 한도 200은 무시, 175는 노랑"
+P220,doctor_limit,72,179,80,70,manual,manual,,,,,,,180,,,,YELLOW,,"기본과 같은 한도 180, 179"
+P221,doctor_limit,72,180,80,70,manual,manual,,,,,,,180,,,,RED,,"기본과 같은 한도 180, 180"
+P222,doctor_limit,72,130,89,70,manual,manual,,,,,,,,90,,,GREEN,,"이완기 한도 90, 89"
+P223,doctor_limit,72,130,90,70,manual,manual,,,,,,,,90,,,RED,,"이완기 한도 90, 90"
+P224,doctor_limit,72,130,80,89,manual,manual,,,,,,,,,90,,GREEN,,"심박 한도 90, 89"
+P225,doctor_limit,72,130,80,90,manual,manual,,,,,,,,,90,,RED,,"심박 한도 90, 90"
+P226,doctor_limit,72,130,80,125,manual,manual,,,,,,,,,130,,RED,,"느슨한 심박 한도 130은 무시, 125는 빨강"
+P227,doctor_limit,72,265,80,70,manual,manual,,,,,,,150,,,,REMEASURE,,한도가 있어도 비현실 값은 재측정

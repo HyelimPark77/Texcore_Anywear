@@ -99,13 +99,16 @@ def pre_rows():
         add("worst_wins", exp, f"{s}/{d}, 심박 {h}", sbp=s, dbp=d, hr=h)
 
     # 측정 출처·누락
-    add("source", RM, "워치 혈압은 판정 금지", codes="PRE_BP_SOURCE_NOT_ALLOWED", bp_source="watch")
-    add("source", RM, "워치 혈압이 높아도 판정 대신 재측정", codes="PRE_BP_SOURCE_NOT_ALLOWED", bp_source="watch", sbp=190)
+    # 발주사 결정(2026-11-02, 자문단 확인 필요): 워치 혈압 C → B. 정상이어도 노랑, 나쁘면 그대로 반영
+    add("source", Y, "워치 혈압이 정상이어도 가볍게(B 등급)", codes="PRE_BP_SOURCE_LOW_GRADE", bp_source="watch")
+    add("source", R, "워치 혈압이 높으면 그대로 빨강", codes="PRE_SBP_HIGH", bp_source="watch", sbp=190)
+    add("source", Y, "워치 혈압 노랑은 그대로 노랑", codes="PRE_SBP_ELEVATED", bp_source="watch", sbp=165)
+    add("source", Y, "워치 혈압 + 워치 심박 모두 정상이면 노랑", bp_source="watch", hr_source="watch")
     add("source", R, "워치 혈압 + 빨강 심박(상완형 맥박)", bp_source="watch", hr=125)
     add("source", R, "워치 혈압 + 빨강 증상", bp_source="watch", symptoms="dizziness")
     add("source", G, "BLE 상완형 혈압계", bp_source="ble_upper_arm", hr_source="ble_upper_arm")
     add("source", G, "가슴 스트랩 심박", hr_source="chest_strap")
-    add("source", RM, "워치 심박이 정상이어도 안전 근거 아님", codes="PRE_HR_SOURCE_LOW_GRADE", hr_source="watch")
+    add("source", Y, "워치 심박이 정상이어도 가볍게(B 등급)", codes="PRE_HR_SOURCE_LOW_GRADE", hr_source="watch")
     add("source", Y, "워치 심박 노랑은 반영", hr_source="watch", hr=110)
     add("source", R, "워치 심박 빨강은 반영", hr_source="watch", hr=125)
     add("source", RM, "수축기 누락", codes="PRE_MISSING_VALUE", sbp="")

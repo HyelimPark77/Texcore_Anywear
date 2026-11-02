@@ -89,7 +89,7 @@ def pre_check(rules, profile: Profile, vitals: Vitals, symptoms=(), conditions=(
     hr_grade = rules["source_grades"]["heart_rate"].get(vitals.hr_source)
     if bp_grade is None or hr_grade is None:
         raise ValueError(f"unknown measurement source: bp={vitals.bp_source} hr={vitals.hr_source}")
-    bp_usable = bp_grade == "A"
+    bp_usable = bp_grade in ("A", "B")
     if not bp_usable:
         findings.append((Light.REMEASURE, Code.PRE_BP_SOURCE_NOT_ALLOWED))
 
@@ -110,9 +110,11 @@ def pre_check(rules, profile: Profile, vitals: Vitals, symptoms=(), conditions=(
         plausible[metric] = v
         band = _band(pre["bands"][metric], v)
         light = Light(band["light"])
-        if metric == "resting_hr" and hr_grade == "B" and light == Light.GREEN:
-            # B 등급(워치) 심박은 좋게 나와도 안전 근거로 쓰지 않는다.
-            findings.append((Light.REMEASURE, Code.PRE_HR_SOURCE_LOW_GRADE))
+        grade = hr_grade if metric == "resting_hr" else bp_grade
+        if grade == "B" and light == Light.GREEN:
+            # B 등급(워치)은 좋게 나와도 안전 근거로 쓰지 않는다 → low_grade_green(초안: 노랑, 가볍게).
+            alt = rules["low_grade_green"]["heart_rate" if metric == "resting_hr" else "blood_pressure"]
+            findings.append((Light(alt["light"]), alt["code"]))
         else:
             findings.append((light, band["code"]))
 

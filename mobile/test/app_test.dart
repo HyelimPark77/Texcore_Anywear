@@ -5,7 +5,7 @@ import 'fakes.dart';
 
 Future<void> toResult(WidgetTester tester, {String sbp = '130', String dbp = '80', String hr = '70', String q1 = '아니요, 괜찮아요'}) async {
   await tester.pump(const Duration(milliseconds: 600)); // 홈 불러오기·화면 전환 끝내기
-  await tapText(tester, '혈압 재고 시작하기');
+  await tapText(tester, '운동 시작하기');
   await enter(tester, '높은 쪽 숫자(수축기)', sbp);
   await enter(tester, '낮은 쪽 숫자(이완기)', dbp);
   await enter(tester, '맥박', hr);
@@ -40,7 +40,7 @@ void main() {
       await tapText(tester, '아니요');
     }
     await tester.pump(const Duration(milliseconds: 500));
-    expect(find.text('혈압 재고 시작하기'), findsOneWidget);
+    expect(find.text('운동 시작하기'), findsOneWidget);
 
     expect(h.server.bodies('POST /auth/otp/request').single, {'phone': '01011112222'});
     expect(h.server.bodies('POST /auth/otp/verify').last, {'phone': '01011112222', 'code': '123456', 'role': 'elder', 'name': '김영자', 'birth_year': 1952});
@@ -60,7 +60,7 @@ void main() {
     expect(find.text('초록 · 평소대로 해요'), findsOneWidget);
     expect(h.speaker.said, contains('자, 오늘은 3분만 해 볼까요?'));
     expect(h.server.bodies('POST /me/prechecks').single,
-        {'systolic': 130, 'diastolic': 80, 'resting_hr': 70, 'symptoms': [], 'conditions': []});
+        {'systolic': 130, 'diastolic': 80, 'resting_hr': 70, 'bp_source': 'manual', 'hr_source': 'manual', 'symptoms': [], 'conditions': []});
 
     await tapText(tester, '3분 시작하기');
     await tester.pump();

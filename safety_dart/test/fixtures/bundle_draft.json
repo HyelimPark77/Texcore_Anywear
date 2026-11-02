@@ -1,10 +1,10 @@
 {
-  "version": "0.1.0-draft",
-  "sha256": "8457d3ecff3f045ac0890f2583dc729364ce892367c9cf85c2e3317f6ec56a21",
+  "version": "0.2.0-draft",
+  "sha256": "f4926bf865e657b37f2b24e7b2654ba98623aea7c880f598904dd1e9fa5db051",
   "rules": {
     "meta": {
       "rule_set": "senior-exercise-safety",
-      "version": "0.1.0-draft",
+      "version": "0.2.0-draft",
       "status": "draft",
       "approved_by": [],
       "source": "외주 계획서 5장(운동 전·중·후 규칙) 초안"
@@ -45,13 +45,23 @@
       "blood_pressure": {
         "manual": "A",
         "ble_upper_arm": "A",
-        "watch": "C"
+        "watch": "B"
       },
       "heart_rate": {
         "manual": "A",
         "ble_upper_arm": "A",
         "chest_strap": "A",
         "watch": "B"
+      }
+    },
+    "low_grade_green": {
+      "blood_pressure": {
+        "light": "YELLOW",
+        "code": "PRE_BP_SOURCE_LOW_GRADE"
+      },
+      "heart_rate": {
+        "light": "YELLOW",
+        "code": "PRE_HR_SOURCE_LOW_GRADE"
       }
     },
     "precheck": {
