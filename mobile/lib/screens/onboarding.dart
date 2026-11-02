@@ -124,11 +124,16 @@ class _BasicInfoScreenState extends State<BasicInfoScreen> {
             if (_name.text.trim().isEmpty) return;
           case 1:
             final y = int.tryParse(_year.text);
-            if (y == null || y < 1900 || y > 2010) throw ApiException(422, '태어난 해를 네 자리로 넣어 주세요');
+            final thisYear = DateTime.now().year;
+            if (y == null || y < 1900 || y > thisYear) throw ApiException(422, '태어난 해를 네 자리로 넣어 주세요. 예: 1952');
+            // 대상은 65세 이상. 막지는 않지만(보호자·직원이 시험해 볼 수 있음) 잘못 넣은 건 아닌지 묻는다.
+            if (thisYear - y < 60 && !await confirmDialog(context, '${thisYear - y}세로 넣으셨어요. 이 앱은 65세 이상 어르신을 위해 만들었어요. 맞게 넣으셨나요?')) {
+              return;
+            }
             await app.saveToken(await app.api.verifyOtp(widget.phone, widget.code, name: _name.text.trim(), birthYear: y));
             await app.loadMe();
           case 5:
-            await app.api.putHealth(_health);
+            await app.saveHealth(_health);
             if (mounted) {
               Navigator.of(context).push(MaterialPageRoute(builder: (_) => ParqScreen(health: _health)));
             }
@@ -186,7 +191,7 @@ class _BasicInfoScreenState extends State<BasicInfoScreen> {
             for (final e in gateConditions.entries)
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
-                child: _Toggle(
+                child: CheckTile(
                   label: e.value,
                   on: _conditions.contains(e.key),
                   onTap: () => setState(() => _conditions.contains(e.key) ? _conditions.remove(e.key) : _conditions.add(e.key)),
@@ -229,25 +234,6 @@ class _BasicInfoScreenState extends State<BasicInfoScreen> {
   }
 }
 
-class _Toggle extends StatelessWidget {
-  final String label;
-  final bool on;
-  final VoidCallback onTap;
-  const _Toggle({required this.label, required this.on, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-        selected: on,
-        button: true,
-        child: OutlinedButton.icon(
-          onPressed: onTap,
-          style: on ? OutlinedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primaryContainer) : null,
-          icon: Icon(on ? Icons.check_box : Icons.check_box_outline_blank, size: 32),
-          label: Align(alignment: Alignment.centerLeft, child: Text(label)),
-        ),
-      );
-}
-
 // ---------------- 3. 운동 전 문진 (PAR-Q+ 간소화, 자문단 검수 필요) ----------------
 const parqQuestions = [
   '의사 선생님이 심장 때문에 운동을 조심하라고 한 적이 있나요?',
@@ -285,7 +271,7 @@ class _ParqScreenState extends State<ParqScreen> {
     }
     final app = AppScope.of(context);
     try {
-      await app.api.putHealth({...widget.health, 'parq_risk': _risk});
+      await app.saveHealth({...widget.health, 'parq_risk': _risk});
       await app.refreshRules();
       if (mounted) goHome(context);
     } catch (e) {

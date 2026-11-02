@@ -86,6 +86,8 @@ def me(user: m.User = Depends(elder_user), db: Session = Depends(get_db)):
     p = db.get(m.ElderProfile, user.id)
     return {"id": user.id, "name": user.name, "birth_year": p.birth_year, "signup_date": p.signup_date,
             "proxy_setup": p.proxy_setup, "has_health": p.health is not None,
+            # 본인 건강 답변: 앱이 홈에서 하드 게이트(의사 확인 필요)를 미리 보여 주고, 고칠 수 있게
+            "health": p.health,
             "settings": {"preferred_time": p.preferred_time, "anchor": p.anchor, "goal": p.goal,
                          "fall_concern": p.fall_concern}}
 

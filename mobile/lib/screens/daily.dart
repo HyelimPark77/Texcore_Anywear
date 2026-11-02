@@ -6,6 +6,7 @@ import '../core/api.dart';
 import '../core/app_state.dart';
 import '../core/vitals.dart';
 import '../ui/kit.dart';
+import 'health.dart';
 import 'onboarding.dart';
 import 'session.dart';
 
@@ -49,11 +50,14 @@ class _HomeScreenState extends State<HomeScreen> {
         final rewards = t['rewards'] as Map;
         final prompts = (t['reengagement']['prompts'] as List).cast<String>();
         final restart = t['ladder']['restart_pending'] == true;
+        // 의사 확인이 필요하면(5-1) 혈압을 재게 하기 전에 먼저 알린다. 재고 나서야 막히면 헛걸음이다.
+        final blocked = app.gateBlocks.isNotEmpty;
         return SeniorScaffold(
           title: '${app.name ?? ''}님, 안녕하세요',
           showBack: false,
-          primaryLabel: '운동 시작하기',
-          onPrimary: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrecheckScreen())),
+          primaryLabel: blocked ? '병원 확인이 필요해요' : '운동 시작하기',
+          onPrimary: () => Navigator.of(context)
+              .push(MaterialPageRoute(builder: (_) => blocked ? const DoctorCheckScreen() : const PrecheckScreen())),
           secondaryLabel: restart ? '처음부터 다시 하기' : null,
           onSecondary: restart
               ? () async {
@@ -62,6 +66,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
               : null,
           body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            if (blocked)
+              Card(
+                margin: const EdgeInsets.only(bottom: 16),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Icon(Icons.local_hospital, size: 36),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text('운동을 시작하기 전에 의사 선생님 확인이 필요해요. 아래 버튼을 누르면 이유와 방법을 알려 드려요.',
+                        style: Theme.of(context).textTheme.titleMedium)),
+                  ]),
+                ),
+              ),
             Text('오늘 할 운동', style: Theme.of(context).textTheme.titleLarge),
             Text('$minutes분', style: const TextStyle(fontSize: 64, fontWeight: FontWeight.w900)),
             // 운동 전 점검(5-2)은 건너뛸 수 없다. 시작 버튼 하나 뒤에 두고, 건강 앱 혈압계 기록이 있으면 확인만 하게 한다.
@@ -91,6 +108,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WeekScreen())),
                 icon: const Icon(Icons.calendar_month, size: 28),
                 label: const Text('이번 주 기록'),
+              ),
+              TextButton.icon(
+                onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HealthInfoScreen())),
+                icon: const Icon(Icons.medical_information, size: 28),
+                label: const Text('내 건강 정보'),
               ),
               TextButton.icon(
                 onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GuardianScreen())),
@@ -201,7 +223,7 @@ class _PrecheckScreenState extends State<PrecheckScreen> {
     if (app.rules != null) {
       local = preCheck(
         app.rules!,
-        Profile(age: app.age),
+        app.profile,
         Vitals(
           systolic: body['systolic'] as num?,
           diastolic: body['diastolic'] as num?,

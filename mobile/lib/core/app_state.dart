@@ -5,9 +5,9 @@ import 'package:safety_engine/safety_engine.dart';
 
 import 'api.dart';
 import 'exercises.dart';
-import 'vitals.dart';
 import 'heart_rate.dart';
 import 'services.dart';
+import 'vitals.dart';
 
 /// 앱 전체 상태. 화면은 AppScope.of(context)로 꺼내 쓴다.
 class AppState extends ChangeNotifier {
@@ -129,6 +129,41 @@ class AppState extends ChangeNotifier {
     final me = await api.me();
     name = me['name'] as String?;
     birthYear = me['birth_year'] as int?;
+    health = (me['health'] as Map?)?.cast<String, dynamic>();
+    notifyListeners();
+  }
+
+  /// 가입 때 받은 건강 답변(질환·몸 상태 질문·박동기·의사 확인). PUT /me/health 와 같은 모양.
+  Map<String, dynamic>? health;
+
+  /// 단말 안전 엔진에 넘길 프로필. 운동 전 점검도 서버와 같은 프로필로 판정한다.
+  Profile get profile {
+    final h = health ?? const {};
+    return Profile(
+      age: age,
+      conditions: ((h['conditions'] as List?) ?? const []).cast<String>().toSet(),
+      parqRisk: h['parq_risk'] == true,
+      doctorClearance: h['doctor_clearance'] == true,
+      betaBlocker: h['beta_blocker'] == true,
+      device: h['device'] as String?,
+      doctorLimits: DoctorLimits.fromJson((h['doctor_limits'] as Map?)?.cast<String, dynamic>()),
+    );
+  }
+
+  /// 하드 게이트(5-1): 막혀 있으면 이유 코드들, 아니면 빈 목록. 규칙·건강 답변이 없으면 판단 보류(빈 목록).
+  List<String> get gateBlocks {
+    final r = rules;
+    if (r == null || health == null) return const [];
+    try {
+      return gateReasons(r, profile);
+    } on ArgumentError {
+      return const [];
+    }
+  }
+
+  Future<void> saveHealth(Map<String, dynamic> h) async {
+    await api.putHealth(h);
+    health = h;
     notifyListeners();
   }
 
