@@ -76,10 +76,13 @@ void main() {
     h.watch.isRealtime = false;
     await h.start(tester);
     await tester.pump(const Duration(milliseconds: 600));
-    await tapText(tester, '워치 연결하기');
+    expect(find.text('워치 연결하기'), findsNothing); // 건강 앱 경유는 홈에 오면 바로 읽는다
+    expect(h.watch.connected, isTrue);
     h.watch.beat(72);
     await tester.pump();
+    await tester.pump(); // 심박이 상태에 들어간 다음 프레임에 홈이 다시 그려진다
     expect(find.text('건강 앱 · 최근 심박 72 (방금)'), findsOneWidget);
+    expect(find.textContaining('SMART-TIME PRO를 열어 동기화'), findsNothing);
     await toResult(tester);
     await tapText(tester, '3분 시작하기');
     await beats(tester, h, 130, 3);                               // 늦은 값이 높아도 일시정지하지 않음
@@ -156,5 +159,52 @@ void main() {
       expect(msgs.last, contains('SMART-TIME PRO를 열어 동기화'));
       await src.close();
     });
+  });
+
+  testWidgets('건강 앱 경유: 오늘 걸음, 워치 기록이 없으면 동기화 안내', (tester) async {
+    final h = Harness();
+    h.watch.isRealtime = false;
+    h.state.readSteps = (from, to) async => 3210;
+    await h.start(tester);
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.text('오늘 걸음 3,210보'), findsOneWidget);
+    expect(find.textContaining('SMART-TIME PRO를 열어 동기화'), findsOneWidget);
+    expect(find.text('워치 기록 다시 불러오기'), findsOneWidget);
+  });
+
+  testWidgets('운동이 끝나면 그 시간대 워치 기록(심박 평균·최고, 걸음)을 보여 준다', (tester) async {
+    final h = Harness();
+    final asked = <(DateTime, DateTime)>[];
+    h.state.readHr = (from, to) async {
+      asked.add((from, to));
+      return [HrSample(90, to), HrSample(100, to), HrSample(110, to)];
+    };
+    h.state.readSteps = (from, to) async => 420;
+    await h.start(tester);
+    await toResult(tester);
+    await tapText(tester, '3분 시작하기');
+    await seconds(tester, 185);
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.text('워치 기록'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('평균 심박 100')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('최고 심박 110')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('걸음 420')), findsOneWidget);
+    // 운동한 시간대에 앞뒤 1분 여유를 두고 읽는다(테스트 시계는 실제로 흐르지 않아 여유분만 남음)
+    expect(asked.last.$2.difference(asked.last.$1), greaterThanOrEqualTo(const Duration(minutes: 2)));
+  });
+
+  testWidgets('운동 후 워치 기록이 아직 없으면 다시 불러오기', (tester) async {
+    final h = Harness();
+    var calls = 0;
+    h.state.readHr = (from, to) async => ++calls == 1 ? <HrSample>[] : [HrSample(95, to)];
+    await h.start(tester);
+    await toResult(tester);
+    await tapText(tester, '3분 시작하기');
+    await seconds(tester, 185);
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.textContaining('아직 워치 기록이 안 들어왔어요'), findsOneWidget);
+    await tapText(tester, '다시 불러오기');
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.bySemanticsLabel(RegExp('평균 심박 95')), findsOneWidget);
   });
 }

@@ -4,6 +4,7 @@ import 'package:safety_engine/safety_engine.dart';
 
 import '../core/api.dart';
 import '../core/app_state.dart';
+import '../core/heart_rate.dart';
 import '../core/vitals.dart';
 import '../ui/figure.dart';
 import '../ui/kit.dart';
@@ -24,7 +25,14 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _today ??= AppScope.of(context).api.today();
+    if (_today == null) {
+      final app = AppScope.of(context);
+      _today = app.api.today();
+      // 건강 앱 경유 워치는 '연결'할 것이 없으므로 홈에 오면 바로 기록을 읽는다(W3).
+      final w = app.watch;
+      if (w != null && !w.realtime && !w.connected) WidgetsBinding.instance.addPostFrameCallback((_) => app.connectWatch());
+      app.loadSteps();
+    }
   }
 
   void _reload() => setState(() => _today = AppScope.of(context).api.today());
@@ -475,7 +483,8 @@ class _PlanPreview extends StatelessWidget {
 // ---------------- 10. 완료·칭찬 ----------------
 class CompleteScreen extends StatelessWidget {
   final Map<String, dynamic> result;
-  const CompleteScreen({super.key, required this.result});
+  final DateTime? startedAt, endedAt;
+  const CompleteScreen({super.key, required this.result, this.startedAt, this.endedAt});
 
   @override
   Widget build(BuildContext context) {
@@ -498,7 +507,96 @@ class CompleteScreen extends StatelessWidget {
           const SizedBox(height: 24),
           ToneCard(icon: Icons.favorite, label: '${cheer['from']}님의 응원', title: (cheer['text'] as String?) ?? '음성 응원이 왔어요'),
         ],
+        if (startedAt != null && endedAt != null && AppScope.of(context).readHr != null)
+          WatchSummaryCard(from: startedAt!, to: endedAt!),
       ])),
+    );
+  }
+}
+
+/// 운동한 시간대의 워치 기록(건강 앱): 심박 평균·최고, 걸음(W2). 워치 심박은 B 등급이라 보여 주기만 한다.
+/// SMART-TIME PRO 동기화가 늦으면 비어 있으므로 '다시 불러오기'를 둔다.
+class WatchSummaryCard extends StatefulWidget {
+  final DateTime from, to;
+  const WatchSummaryCard({super.key, required this.from, required this.to});
+  @override
+  State<WatchSummaryCard> createState() => _WatchSummaryCardState();
+}
+
+class _WatchSummaryCardState extends State<WatchSummaryCard> {
+  List<HrSample>? _hr;
+  int? _steps;
+  bool _loading = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_hr == null && !_loading) _load();
+  }
+
+  Future<void> _load() async {
+    final app = AppScope.of(context);
+    setState(() => _loading = true);
+    // 동기화가 운동 끝보다 조금 늦게 기록하는 경우가 있어 앞뒤로 1분 여유
+    final from = widget.from.subtract(const Duration(minutes: 1)), to = widget.to.add(const Duration(minutes: 1));
+    List<HrSample> hr = const [];
+    int? steps;
+    try {
+      hr = await app.readHr!(from, to).timeout(const Duration(seconds: 5));
+    } catch (_) {}
+    try {
+      steps = await app.readSteps?.call(from, to).timeout(const Duration(seconds: 5));
+    } catch (_) {}
+    if (!mounted) return;
+    setState(() {
+      _hr = hr;
+      _steps = steps;
+      _loading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hr = _hr ?? const <HrSample>[];
+    final has = hr.isNotEmpty || (_steps ?? 0) > 0;
+    return Padding(
+      padding: const EdgeInsets.only(top: 24),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Row(children: [
+              Icon(Icons.watch, size: 30, color: Palette.of(context).brand),
+              const SizedBox(width: 8),
+              const Expanded(child: Text('워치 기록', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800))),
+            ]),
+            const SizedBox(height: 12),
+            if (_loading)
+              const Text('워치 기록을 불러오는 중이에요')
+            else if (has) ...[
+              Row(children: [
+                if (hr.isNotEmpty) ...[
+                  StatTile(label: '평균 심박', value: '${(hr.map((s) => s.bpm).reduce((a, b) => a + b) / hr.length).round()}'),
+                  const SizedBox(width: 10),
+                  StatTile(label: '최고 심박', value: '${hr.map((s) => s.bpm).reduce((a, b) => a > b ? a : b)}'),
+                ],
+                if (hr.isNotEmpty && _steps != null) const SizedBox(width: 10),
+                if (_steps != null) StatTile(label: '걸음', value: _comma(_steps!)),
+              ]),
+              const NoteRow(Icons.info_outline, '워치 숫자는 참고용이에요. 숨찬 정도를 함께 보세요.'),
+            ] else ...[
+              const Text('아직 워치 기록이 안 들어왔어요. 워치를 차고 SMART-TIME PRO를 열면 동기화돼요.'),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: _load,
+                style: OutlinedButton.styleFrom(alignment: Alignment.center),
+                icon: const Icon(Icons.refresh, size: 26),
+                label: const Text('다시 불러오기'),
+              ),
+            ],
+          ]),
+        ),
+      ),
     );
   }
 }
@@ -614,14 +712,27 @@ String _ago(DateTime at) {
   return '${m ~/ 60}시간 전';
 }
 
-/// 홈 화면 워치 상태: 큰 아이콘 + 상태 문장 + 연결 버튼(계획서 7-4: 연결 상태를 크게 보여 줌).
+/// 홈 화면 워치 상태(7-4: 연결 상태를 크게 보여 줌).
+/// 실시간(PC 브리지)은 연결 버튼, 건강 앱 경유는 마지막 워치 기록 시각과 오늘 걸음 + 동기화 안내(W1·W3).
 class _WatchRow extends StatelessWidget {
   final AppState app;
   const _WatchRow({required this.app});
 
+  /// 이보다 오래된 워치 기록이면 워치를 안 찼거나 동기화가 안 된 것으로 본다.
+  static const staleAfter = Duration(hours: 2);
+
   @override
   Widget build(BuildContext context) {
+    final p = Palette.of(context);
+    final w = app.watch!;
     final on = app.watchConnected;
+    final hr = app.lastHr;
+    final stale = !w.realtime && (hr == null || DateTime.now().difference(hr.at) > staleAfter);
+    final status = w.realtime
+        ? (on && hr != null ? '${app.watchStatus} · 심박 ${hr.bpm}' : app.watchStatus)
+        : hr != null
+            ? '건강 앱 · 최근 심박 ${hr.bpm} (${_ago(hr.at)})'
+            : (on ? '워치 기록을 기다리는 중' : app.watchStatus);
     return Padding(
       padding: const EdgeInsets.only(top: 16),
       child: Card(
@@ -629,28 +740,34 @@ class _WatchRow extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Row(children: [
-              Icon(on ? Icons.watch : Icons.watch_off, size: 36, color: on ? Palette.of(context).brand : Palette.of(context).muted),
+              Icon(on && !stale ? Icons.watch : Icons.watch_off, size: 36, color: on && !stale ? p.brand : p.muted),
               const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  on && app.lastHr != null
-                      ? app.watch!.realtime
-                          ? '${app.watchStatus} · 심박 ${app.lastHr!.bpm}'
-                          : '건강 앱 · 최근 심박 ${app.lastHr!.bpm} (${_ago(app.lastHr!.at)})'
-                      : app.watchStatus,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-              ),
+              Expanded(child: Text(status, style: const TextStyle(fontWeight: FontWeight.w700))),
             ]),
+            if (app.stepsToday != null) NoteRow(Icons.directions_walk, '오늘 걸음 ${_comma(app.stepsToday!)}보'),
+            if (stale) const NoteRow(Icons.sync_problem, '워치 기록이 한동안 없어요. 워치를 차고 SMART-TIME PRO를 열어 동기화해 주세요.'),
             const SizedBox(height: 8),
-            OutlinedButton(
-              onPressed: on ? app.disconnectWatch : app.connectWatch,
-              style: OutlinedButton.styleFrom(alignment: Alignment.center, minimumSize: const Size.fromHeight(56)),
-              child: Text(on ? '워치 연결 끊기' : '워치 연결하기'),
-            ),
+            if (w.realtime)
+              OutlinedButton(
+                onPressed: on ? app.disconnectWatch : app.connectWatch,
+                style: OutlinedButton.styleFrom(alignment: Alignment.center, minimumSize: const Size.fromHeight(56)),
+                child: Text(on ? '워치 연결 끊기' : '워치 연결하기'),
+              )
+            else
+              OutlinedButton.icon(
+                onPressed: () {
+                  app.connectWatch();
+                  app.loadSteps();
+                },
+                style: OutlinedButton.styleFrom(alignment: Alignment.center, minimumSize: const Size.fromHeight(56)),
+                icon: const Icon(Icons.refresh, size: 26),
+                label: const Text('워치 기록 다시 불러오기'),
+              ),
           ]),
         ),
       ),
     );
   }
 }
+
+String _comma(int n) => n.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]},');

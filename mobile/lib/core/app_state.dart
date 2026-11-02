@@ -32,8 +32,26 @@ class AppState extends ChangeNotifier {
   /// 건강 앱 혈압 기록 읽기(운동 전 점검 자동 채우기). 없으면 손으로만 넣는다.
   BpReader? readBp;
 
-  /// 건강 앱 심박 읽기(워치 맥박으로 맥박 칸 채우기).
+  /// 건강 앱 심박 읽기(워치 맥박으로 맥박 칸 채우기, 운동 후 워치 기록 요약).
   HrReader? readHr;
+
+  /// 건강 앱 걸음 수 읽기(워치·폰). 없으면 걸음 표시를 숨긴다.
+  Future<int?> Function(DateTime from, DateTime to)? readSteps;
+
+  /// 오늘 걸음(홈 표시). 못 읽었으면 null.
+  int? stepsToday;
+
+  Future<void> loadSteps() async {
+    final read = readSteps;
+    if (read == null) return;
+    final now = DateTime.now();
+    try {
+      stepsToday = await read(DateTime(now.year, now.month, now.day), now).timeout(const Duration(seconds: 5));
+    } catch (_) {
+      stepsToday = null;
+    }
+    notifyListeners();
+  }
 
   /// 오늘 점검에 쓸 혈압: 팔 혈압계 최근 기록은 채우고, 워치 혈압은 참고로만.
   Future<VitalsSnapshot> latestVitals() async {

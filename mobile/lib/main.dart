@@ -47,6 +47,7 @@ Future<void> main() async {
   if (useHealth) {
     state.readBp = readBloodPressure;
     state.readHr = readHeartRates;
+    state.readSteps = readSteps;
   }
   state.exercises = ExerciseLibrary.parse(await rootBundle.loadString('assets/exercises.json'));
   await state.restore();
