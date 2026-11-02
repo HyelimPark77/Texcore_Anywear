@@ -9,6 +9,7 @@ import 'package:http/testing.dart';
 import 'package:safety_engine/safety_engine.dart';
 import 'package:senior_coach/core/api.dart';
 import 'package:senior_coach/core/app_state.dart';
+import 'package:senior_coach/core/exercises.dart';
 import 'package:senior_coach/core/heart_rate.dart';
 import 'package:senior_coach/core/services.dart';
 import 'package:senior_coach/main.dart';
@@ -142,6 +143,9 @@ class FakeServer {
       });
 }
 
+/// 앱과 같은 운동 콘텐츠 파일(테스트는 mobile/ 에서 돈다)
+final exerciseLibrary = ExerciseLibrary.parse(File('assets/exercises.json').readAsStringSync());
+
 class Harness {
   final server = FakeServer();
   final speaker = FakeSpeaker();
@@ -161,6 +165,7 @@ class Harness {
     );
     state.name = '김영자';
     state.birthYear = 1952;
+    state.exercises = exerciseLibrary;
     if (withRules) state.rules = RuleBundle.fromEnvelope(bundleBody, requireApproved: false);
   }
 

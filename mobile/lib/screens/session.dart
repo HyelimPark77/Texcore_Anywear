@@ -6,10 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:safety_engine/safety_engine.dart';
 
 import '../core/app_state.dart';
+import '../core/exercises.dart';
+import '../ui/figure.dart';
 import '../ui/kit.dart';
 import 'daily.dart';
 import 'onboarding.dart';
 
+// 콘텐츠(assets/exercises.json)에 없는 운동일 때만 쓰는 종류별 문장
 const _guidance = {
   'aerobic': ['발을 번갈아 들어 올려요', '팔도 같이 앞뒤로 흔들어요', '숨이 조금 차는 정도면 알맞아요', '말은 할 수 있을 만큼만 해요'],
   'strength': ['천천히 힘을 주세요', '숨을 참지 말고 내쉬면서 힘을 줘요', '아프면 바로 멈추세요'],
@@ -40,6 +43,11 @@ class _SessionScreenState extends State<SessionScreen> {
   int? _pendingBpm;
   StreamSubscription? _hrSub;
   String? _pauseCode;
+  // 동작 안내: 세션 시간을 몸 풀기 → 본 운동 → 마무리 동작으로 나눈 표
+  List<Segment> _plan = const [];
+  int _seg = -1;
+  int _lastSafetySayT = -100; // 안전 안내 직후에는 동작 안내로 말을 끊지 않는다
+  String? _pendingIntro; // 안전 안내와 겹쳐 미뤄 둔 '다음 동작' 안내
 
   AppState get app => AppScope.of(context);
   int get _total => (_session?['minutes'] as int? ?? 0) * 60;
@@ -76,7 +84,11 @@ class _SessionScreenState extends State<SessionScreen> {
         _monitor = SessionMonitor(rules, s['hr_limits']['ceiling'] as int, hrGrade: _live ? w!.grade : null, sink: _events.add);
         if (_live) _hrSub = w!.samples.listen((hr) => _pendingBpm = hr.bpm);
       });
-      app.say('${s['activity']['name']} ${s['minutes']}분 시작할게요. 힘들면 언제든 그만을 누르세요.');
+      _plan = app.exercises?.plan(s['activity']['id'] as String, _total) ?? const [];
+      final first = _plan.isEmpty ? '' : ' 먼저 ${phaseNames[_plan.first.phase]}, ${_plan.first.move.name}. ${_plan.first.move.how.first}';
+      if (_plan.isNotEmpty) _seg = 0;
+      _lastSafetySayT = 0; // 시작 안내도 끝까지 듣게
+      app.say('${s['activity']['name']} ${s['minutes']}분 시작할게요. 힘들면 언제든 그만을 누르세요.$first');
       _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
     } catch (e) {
       if (mounted) {
@@ -98,10 +110,45 @@ class _SessionScreenState extends State<SessionScreen> {
       _handle(_monitor!.tick(_t));
     }
     if (_ending) return;
-    final lines = _guidance[_session!['activity']['kind']] ?? _guidance['aerobic']!;
-    if (!_paused && _elapsed % 30 == 0 && _elapsed < _total) app.say(lines[(_elapsed ~/ 30) % lines.length]);
+    if (!_paused && _elapsed < _total) _guide();
     if (!_ending && _elapsed >= _total) _end(completed: true);
     if (mounted) setState(() {});
+  }
+
+  /// 동작이 바뀌면 이름과 방법을, 같은 동작 중에는 짧은 문장을 일정 간격으로 말한다.
+  void _guide() {
+    if (_plan.isEmpty) {
+      final lines = _guidance[_session!['activity']['kind']] ?? _guidance['aerobic']!;
+      if (_elapsed % 30 == 0) _sayGuide(lines[(_elapsed ~/ 30) % lines.length]);
+      return;
+    }
+    final i = segmentAt(_plan, _elapsed);
+    final seg = _plan[i];
+    if (i != _seg) {
+      final phaseChanged = _seg < 0 || _plan[_seg].phase != seg.phase;
+      _seg = i;
+      final head = phaseChanged ? phaseIntros[seg.phase]! : '다음 동작이에요. ';
+      _pendingIntro = '$head${seg.move.name}. ${seg.move.how.join('. ')}';
+    }
+    if (_pendingIntro != null) {
+      if (_sayGuide(_pendingIntro!, force: true)) _pendingIntro = null;
+      return;
+    }
+    final every = app.exercises!.cueEverySeconds;
+    final inSeg = _elapsed - seg.start;
+    if (inSeg > 0 && inSeg % every == 0) _sayGuide(seg.move.cues[(inSeg ~/ every - 1) % seg.move.cues.length]);
+  }
+
+  /// 말했으면 true. 안전 안내 뒤 8초(동작 바뀜 안내는 4초)는 말을 끊지 않으려고 쉰다.
+  bool _sayGuide(String text, {bool force = false}) {
+    if (_t - _lastSafetySayT < (force ? 4 : 8)) return false;
+    app.say(text);
+    return true;
+  }
+
+  void _sayAlert(String text) {
+    _lastSafetySayT = _t;
+    app.say(text);
   }
 
   void _handle(List<SafetyAction> actions) {
@@ -113,11 +160,11 @@ class _SessionScreenState extends State<SessionScreen> {
           _banner = a.code.startsWith('SENSOR')
               ? '워치 신호가 끊겼어요. 조금 느리게 하시고, 숨찬 정도를 더 자주 여쭤볼게요.'
               : '천천히 하세요. 조금 더 느리게 움직여요.';
-          app.say(_banner!);
+          _sayAlert(_banner!);
         case ActionKind.PAUSE:
           _paused = true;
           _pauseCode = a.code;
-          app.say('잠깐 쉬어요. 의자에 앉아 숨을 고르세요.');
+          _sayAlert('잠깐 쉬어요. 의자에 앉아 숨을 고르세요.');
         case ActionKind.STOP:
           _end(completed: false, emergency: false);
         case ActionKind.EMERGENCY_119:
@@ -125,7 +172,7 @@ class _SessionScreenState extends State<SessionScreen> {
         case ActionKind.GUARDIAN_ALERT:
           _upload();
         case ActionKind.LOUD_PROMPT:
-          app.say('괜찮으세요? 괜찮으시면 화면을 한 번 눌러 주세요.');
+          _sayAlert('괜찮으세요? 괜찮으시면 화면을 한 번 눌러 주세요.');
         case ActionKind.SENSOR_RESTORED:
           _banner = null;
         case ActionKind.SENSOR_FALLBACK:
@@ -137,7 +184,7 @@ class _SessionScreenState extends State<SessionScreen> {
   Future<void> _askRpe() async {
     if (_askingRpe || _ending) return;
     _askingRpe = true;
-    app.say('숨이 차세요? 말은 하실 수 있나요?');
+    _sayAlert('숨이 차세요? 말은 하실 수 있나요?');
     final r = await Navigator.of(context).push<RpeResult>(MaterialPageRoute(builder: (_) => const RpeScreen()));
     _askingRpe = false;
     if (_ending || !mounted) return;
@@ -221,8 +268,9 @@ class _SessionScreenState extends State<SessionScreen> {
           Text(_paused ? '잠깐 쉬는 중' : '남은 시간', style: Theme.of(context).textTheme.titleLarge),
           Semantics(
             label: '남은 시간 $mm분 $ss초',
-            child: Text('$mm:$ss', style: const TextStyle(fontSize: 88, fontWeight: FontWeight.w900)),
+            child: Text('$mm:$ss', style: TextStyle(fontSize: _plan.isEmpty ? 88 : 56, fontWeight: FontWeight.w900)),
           ),
+          if (_plan.isNotEmpty && !_paused) _MoveCard(plan: _plan, index: _seg.clamp(0, _plan.length - 1), elapsed: _elapsed),
           if (_paused) const Text('의자에 앉아 숨을 고르세요. 괜찮아지면 다시 하기를 누르세요.'),
           if (_paused && _live && (_pauseCode == 'HR_FAR_OVER_CEILING' || _pauseCode == 'HR_SUDDEN_CHANGE'))
             const Padding(
@@ -246,6 +294,51 @@ class _SessionScreenState extends State<SessionScreen> {
           ],
           const SizedBox(height: 16),
           Text('오늘은 ${_session!['light'] == 'YELLOW' ? '가볍게 하는 날' : '평소대로 하는 날'}이에요.'),
+        ]),
+      ),
+    );
+  }
+}
+
+/// 지금 동작: 단계·순서, 움직이는 그림, 이름, 하는 방법, 주의, 다음 동작.
+class _MoveCard extends StatelessWidget {
+  final List<Segment> plan;
+  final int index, elapsed;
+  const _MoveCard({required this.plan, required this.index, required this.elapsed});
+
+  @override
+  Widget build(BuildContext context) {
+    final seg = plan[index];
+    final m = seg.move;
+    final next = index + 1 < plan.length ? plan[index + 1].move.name : null;
+    final left = (seg.end - elapsed).clamp(0, seg.seconds);
+    final big = Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800);
+    return Card(
+      margin: const EdgeInsets.only(top: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text('${phaseNames[seg.phase]} · 동작 ${index + 1}/${plan.length} · $left초 남음'),
+          const SizedBox(height: 8),
+          SizedBox(height: 200, child: MoveFigure(poseNames: m.poses, tempoSeconds: m.tempoSeconds, label: m.name)),
+          const SizedBox(height: 8),
+          Text(m.name, style: big),
+          const SizedBox(height: 8),
+          for (final (i, step) in m.how.indexed)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text('${i + 1}. $step'),
+            ),
+          const SizedBox(height: 8),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Icon(Icons.info_outline, size: 28),
+            const SizedBox(width: 8),
+            Expanded(child: Text(m.caution)),
+          ]),
+          if (next != null) ...[
+            const Divider(height: 24),
+            Text('다음: $next'),
+          ],
         ]),
       ),
     );

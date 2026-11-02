@@ -1,0 +1,79 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:senior_coach/core/exercises.dart';
+
+import 'app_test.dart' show toResult;
+import 'fakes.dart';
+
+void main() {
+  group('동작 순서표', () {
+    for (final activity in exerciseLibrary.activities.keys) {
+      for (final minutes in [1, 3, 5, 8, 10, 15, 20, 30]) {
+        test('$activity $minutes분: 빈틈없이 이어지고 몸 풀기로 시작해 마무리로 끝난다', () {
+          final total = minutes * 60;
+          final plan = exerciseLibrary.plan(activity, total);
+          expect(plan, isNotEmpty);
+          var t = 0;
+          for (final s in plan) {
+            expect(s.start, t);
+            expect(s.seconds, greaterThan(0));
+            t = s.end;
+          }
+          expect(t, total);
+          if (minutes >= 3) {
+            expect(plan.first.phase, Phase.warmup);
+            expect(plan.last.phase, Phase.cooldown);
+            expect(plan.where((s) => s.phase == Phase.main), isNotEmpty);
+          } else {
+            expect(plan.single.phase, Phase.main);
+          }
+        });
+      }
+    }
+
+    test('모르는 운동이면 빈 표(종류별 짧은 문장으로 대신)', () {
+      expect(exerciseLibrary.plan('unknown', 180), isEmpty);
+    });
+
+    test('동작 바뀌는 시각 찾기', () {
+      final plan = exerciseLibrary.plan('chair_march', 180);
+      expect(segmentAt(plan, 0), 0);
+      expect(segmentAt(plan, plan[1].start), 1);
+      expect(segmentAt(plan, 999), plan.length - 1);
+    });
+  });
+
+  testWidgets('운동 중: 동작 그림·이름·방법을 보여 주고, 동작이 바뀌면 말로 알린다', (tester) async {
+    final semantics = tester.ensureSemantics();
+    final h = Harness();
+    await h.start(tester);
+    await toResult(tester);
+    await tapText(tester, '3분 시작하기');
+    await tester.pump(const Duration(seconds: 1));
+
+    // 3분 = 몸 풀기 30초(숨 고르기) → 본 운동 2분 → 마무리 30초
+    expect(find.textContaining('몸 풀기 · 동작 1/'), findsOneWidget);
+    expect(find.text('앉아서 숨 고르기'), findsOneWidget);
+    expect(find.text('1. 의자에 등을 붙이고 앉아요'), findsOneWidget);
+    expect(find.text('다음: 앉아서 제자리 걷기'), findsOneWidget);
+    expect(find.bySemanticsLabel('앉아서 숨 고르기 그림'), findsOneWidget);
+    expect(h.speaker.said.where((s) => s.contains('먼저 몸 풀기, 앉아서 숨 고르기')), hasLength(1));
+
+    await seconds(tester, 30);
+    expect(find.textContaining('본 운동 · 동작 2/'), findsOneWidget);
+    expect(find.text('앉아서 제자리 걷기'), findsOneWidget);
+    expect(h.speaker.said.where((s) => s.startsWith('이제 본 운동이에요. 앉아서 제자리 걷기')), isNotEmpty);
+    semantics.dispose();
+  });
+
+  testWidgets('같은 동작 중에는 짧은 문장을 12초마다, 시작 안내는 끊지 않는다', (tester) async {
+    final h = Harness();
+    await h.start(tester);
+    await toResult(tester);
+    final before = h.speaker.said.length;
+    await tapText(tester, '3분 시작하기');
+    await seconds(tester, 11);
+    expect(h.speaker.said.sublist(before), hasLength(1), reason: '시작 안내만');
+    await seconds(tester, 1);
+    expect(h.speaker.said.last, '천천히 들이마시고');
+  });
+}

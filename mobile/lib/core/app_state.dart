@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:safety_engine/safety_engine.dart';
 
 import 'api.dart';
+import 'exercises.dart';
 import 'heart_rate.dart';
 import 'services.dart';
 
@@ -23,6 +24,9 @@ class AppState extends ChangeNotifier {
   HeartRateSource? watch;
   String watchStatus = '워치 연결 안 됨';
   HrSample? lastHr;
+
+  /// 운동 동작 안내 콘텐츠(assets/exercises.json). 없으면 종류별 짧은 문장만 말한다.
+  ExerciseLibrary? exercises;
   StreamSubscription? _watchSubs, _watchStatusSub;
   String? name;
   int? birthYear;

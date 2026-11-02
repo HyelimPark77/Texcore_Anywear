@@ -1,0 +1,178 @@
+{
+  "_comment": "운동 콘텐츠(초안). 동작 이름·방법·음성 문구는 induction/rules/guardrails.yaml 금지어 검사를 통과해야 한다(induction/tests/test_exercise_content.py). 동작 순서와 시간은 운동처방 자문 후 확정. video는 영상 제작(계획서 10-1) 후 채운다.",
+  "version": "2026-11-draft",
+  "cue_every_seconds": 12,
+  "moves": {
+    "seated_breath": {
+      "name": "앉아서 숨 고르기", "seated": true, "supported": true, "seconds": 30,
+      "poses": ["sit", "sit_breath_in"], "tempo_seconds": 4,
+      "how": ["의자에 등을 붙이고 앉아요", "코로 천천히 숨을 들이마셔요", "입으로 길게 내쉬어요"],
+      "cues": ["천천히 들이마시고", "길게 내쉬어요", "어깨 힘을 빼요"],
+      "caution": "어지러우면 숨을 평소대로 쉬세요"
+    },
+    "shoulder_roll": {
+      "name": "어깨 으쓱하기", "seated": true, "supported": true, "seconds": 30,
+      "poses": ["sit", "sit_shrug"], "tempo_seconds": 2,
+      "how": ["두 어깨를 귀 쪽으로 올려요", "천천히 내려놓아요"],
+      "cues": ["어깨를 올리고", "툭 내려놓아요", "목은 편하게 두세요"],
+      "caution": "어깨가 아프면 작게 움직여요"
+    },
+    "ankle_pump": {
+      "name": "발목 까딱이기", "seated": true, "supported": true, "seconds": 30,
+      "poses": ["sit", "sit_toes_up"], "tempo_seconds": 1.5,
+      "how": ["발뒤꿈치는 바닥에 두어요", "발끝을 들었다 내려요"],
+      "cues": ["발끝을 들고", "내려요", "종아리가 따뜻해져요"],
+      "caution": "쥐가 나면 멈추고 발을 쉬게 하세요"
+    },
+    "seated_march": {
+      "name": "앉아서 제자리 걷기", "seated": true, "supported": true, "seconds": 60,
+      "poses": ["sit_knee_up", "sit"], "tempo_seconds": 1,
+      "how": ["의자 앞쪽에 앉아요", "무릎을 번갈아 들어 올려요", "등은 곧게 펴요"],
+      "cues": ["하나, 둘, 하나, 둘", "무릎을 조금 더 들어요", "숨은 편하게 쉬어요", "말은 할 수 있을 만큼만 해요"],
+      "caution": "숨이 많이 차면 천천히 하세요"
+    },
+    "seated_march_arms": {
+      "name": "팔 흔들며 앉아서 걷기", "seated": true, "supported": true, "seconds": 60,
+      "poses": ["sit_knee_up_arm", "sit"], "tempo_seconds": 1,
+      "how": ["무릎을 번갈아 들어요", "팔도 걷듯이 앞뒤로 흔들어요"],
+      "cues": ["팔도 같이 흔들어요", "하나, 둘, 하나, 둘", "숨이 조금 차는 정도면 알맞아요"],
+      "caution": "어깨가 불편하면 팔은 쉬고 다리만 해요"
+    },
+    "seated_punch": {
+      "name": "앞으로 주먹 뻗기", "seated": true, "supported": true, "seconds": 45,
+      "poses": ["sit_arms_fwd", "sit"], "tempo_seconds": 1.2,
+      "how": ["가볍게 주먹을 쥐어요", "한 팔씩 앞으로 뻗었다 당겨요"],
+      "cues": ["앞으로 뻗고", "당겨요", "팔꿈치는 끝까지 펴지 않아도 돼요"],
+      "caution": "어깨가 아프면 낮게 뻗어요"
+    },
+    "home_walk_easy": {
+      "name": "집 안 천천히 걷기", "seated": false, "supported": false, "seconds": 90,
+      "poses": ["walk_a", "walk_b"], "tempo_seconds": 0.9,
+      "how": ["걸려 넘어질 물건을 치워 두세요", "평소보다 조금 큰 걸음으로 걸어요", "벽이나 가구 가까이로 다녀요"],
+      "cues": ["발뒤꿈치부터 딛어요", "앞을 보고 걸어요", "숨이 조금 차는 정도면 알맞아요"],
+      "caution": "어지러우면 바로 가까운 의자에 앉으세요"
+    },
+    "home_walk_brisk": {
+      "name": "팔 흔들며 집 안 걷기", "seated": false, "supported": false, "seconds": 90,
+      "poses": ["walk_a", "walk_b"], "tempo_seconds": 0.7,
+      "how": ["팔을 앞뒤로 흔들며 걸어요", "말은 할 수 있을 만큼의 빠르기로 걸어요"],
+      "cues": ["팔을 흔들어요", "조금만 더 힘차게", "말이 끊기면 속도를 늦춰요"],
+      "caution": "숨이 많이 차면 천천히 걸어요"
+    },
+    "outdoor_walk_easy": {
+      "name": "동네 천천히 걷기", "seated": false, "supported": false, "seconds": 120,
+      "poses": ["walk_a", "walk_b"], "tempo_seconds": 0.9,
+      "how": ["평평한 길을 골라요", "편한 신발을 신어요", "처음에는 천천히 걸어요"],
+      "cues": ["앞을 보고 걸어요", "발뒤꿈치부터 딛어요", "쉬고 싶으면 의자나 벤치에 앉으세요"],
+      "caution": "어지러우면 멈추고 앉을 곳을 찾으세요"
+    },
+    "outdoor_walk_brisk": {
+      "name": "조금 빠르게 동네 걷기", "seated": false, "supported": false, "seconds": 120,
+      "poses": ["walk_a", "walk_b"], "tempo_seconds": 0.7,
+      "how": ["팔을 흔들며 조금 빠르게 걸어요", "말은 할 수 있을 만큼만 빠르게 걸어요"],
+      "cues": ["팔을 흔들어요", "말이 끊기면 속도를 늦춰요", "돌아갈 길도 생각해서 걸어요"],
+      "caution": "숨이 많이 차면 천천히 걸어요"
+    },
+    "march_standing_hold": {
+      "name": "의자 잡고 제자리 걷기", "seated": false, "supported": true, "seconds": 60,
+      "poses": ["stand_hold_knee_up", "stand_hold"], "tempo_seconds": 1,
+      "how": ["의자 등받이를 잡고 서요", "무릎을 번갈아 들어요"],
+      "cues": ["의자를 꼭 잡아요", "하나, 둘, 하나, 둘", "숨은 편하게 쉬어요"],
+      "caution": "흔들리면 바로 의자에 앉으세요"
+    },
+    "seated_knee_extend": {
+      "name": "앉아서 무릎 펴기", "seated": true, "supported": true, "seconds": 60,
+      "poses": ["sit_leg_ext", "sit"], "tempo_seconds": 2.5,
+      "how": ["의자에 깊이 앉아요", "한쪽 다리를 앞으로 쭉 펴요", "잠깐 멈췄다가 천천히 내려요"],
+      "cues": ["펴고, 하나, 둘", "천천히 내려요", "숨을 내쉬면서 힘을 줘요", "숨을 참지 마세요"],
+      "caution": "무릎이 아프면 덜 펴세요"
+    },
+    "seated_arm_press": {
+      "name": "앉아서 팔 위로 밀기", "seated": true, "supported": true, "seconds": 45,
+      "poses": ["sit_arms_up", "sit_arms_bent"], "tempo_seconds": 2,
+      "how": ["두 손을 어깨 높이에 두어요", "천장을 밀듯이 올려요", "천천히 내려요"],
+      "cues": ["위로 밀고", "천천히 내려요", "숨을 내쉬면서 올려요"],
+      "caution": "어깨가 아프면 얼굴 높이까지만 올려요"
+    },
+    "seated_squeeze": {
+      "name": "무릎 사이 힘주기", "seated": true, "supported": true, "seconds": 45,
+      "poses": ["sit_squeeze", "sit"], "tempo_seconds": 3,
+      "how": ["두 주먹을 무릎 사이에 끼워요", "무릎으로 꾹 눌러요", "셋을 세고 풀어요"],
+      "cues": ["꾹 누르고, 하나, 둘, 셋", "풀어요", "숨을 참지 마세요"],
+      "caution": "아프면 바로 멈추세요"
+    },
+    "sit_to_stand": {
+      "name": "의자에서 일어났다 앉기", "seated": false, "supported": true, "seconds": 60,
+      "poses": ["stand_front_chair", "sit"], "tempo_seconds": 3,
+      "how": ["의자 앞쪽에 앉아 발을 어깨너비로 벌려요", "몸을 앞으로 숙이며 일어나요", "천천히 엉덩이를 뒤로 빼며 앉아요"],
+      "cues": ["앞으로 숙이며 일어나요", "천천히 앉아요", "손으로 무릎을 짚어도 괜찮아요"],
+      "caution": "의자가 밀리지 않게 벽에 붙여 두세요"
+    },
+    "seated_lean": {
+      "name": "앉아서 몸 기울였다 돌아오기", "seated": true, "supported": true, "seconds": 45,
+      "poses": ["sit_lean_fwd", "sit"], "tempo_seconds": 2.5,
+      "how": ["의자 가운데에 앉아요", "몸을 앞으로 천천히 기울여요", "배에 힘을 주고 돌아와요"],
+      "cues": ["천천히 기울이고", "돌아와요", "의자 옆을 잡아도 괜찮아요"],
+      "caution": "어지러우면 바로 멈추세요"
+    },
+    "seated_leg_hold": {
+      "name": "앉아서 한 발 들고 버티기", "seated": true, "supported": true, "seconds": 45,
+      "poses": ["sit_knee_up", "sit"], "tempo_seconds": 4,
+      "how": ["한쪽 발을 바닥에서 살짝 들어요", "넷을 세며 버텨요", "발을 바꿔요"],
+      "cues": ["들고, 하나, 둘, 셋, 넷", "내려요", "몸이 기울지 않게 해요"],
+      "caution": "흔들리면 의자 옆을 잡으세요"
+    },
+    "seated_reach": {
+      "name": "앉아서 손 뻗기", "seated": true, "supported": true, "seconds": 45,
+      "poses": ["sit_reach_up", "sit"], "tempo_seconds": 2.5,
+      "how": ["한 손으로 의자를 잡아요", "다른 손을 위로 천천히 뻗어요", "제자리로 돌아와요"],
+      "cues": ["위로 뻗고", "돌아와요", "몸이 기울지 않게 해요"],
+      "caution": "어깨가 아프면 낮게 뻗어요"
+    },
+    "heel_raise_hold": {
+      "name": "의자 잡고 발꿈치 들기", "seated": false, "supported": true, "seconds": 45,
+      "poses": ["stand_hold_heel_up", "stand_hold"], "tempo_seconds": 2,
+      "how": ["의자 등받이를 두 손으로 잡아요", "발꿈치를 천천히 들어요", "천천히 내려요"],
+      "cues": ["발꿈치를 들고", "천천히 내려요", "의자를 꼭 잡아요"],
+      "caution": "흔들리면 바로 의자에 앉으세요"
+    },
+    "weight_shift_hold": {
+      "name": "의자 잡고 몸무게 옮기기", "seated": false, "supported": true, "seconds": 45,
+      "poses": ["stand_hold_lean", "stand_hold"], "tempo_seconds": 2.5,
+      "how": ["의자를 잡고 발을 어깨너비로 벌려요", "몸무게를 앞발 쪽으로 옮겨요", "다시 뒤로 옮겨요"],
+      "cues": ["앞으로 옮기고", "돌아와요", "발은 바닥에 붙여 두세요"],
+      "caution": "어지러우면 바로 앉으세요"
+    },
+    "one_leg_hold": {
+      "name": "의자 잡고 한 발로 서기", "seated": false, "supported": true, "seconds": 45,
+      "poses": ["stand_hold_one_leg", "stand_hold"], "tempo_seconds": 4,
+      "how": ["의자를 두 손으로 잡아요", "한쪽 발을 살짝 들어요", "넷을 세고 발을 바꿔요"],
+      "cues": ["들고, 하나, 둘, 셋, 넷", "내려요", "의자를 꼭 잡아요"],
+      "caution": "흔들리면 바로 발을 내리세요"
+    },
+    "weight_shift_free": {
+      "name": "서서 몸무게 옮기기", "seated": false, "supported": false, "seconds": 45,
+      "poses": ["stand_lean", "stand"], "tempo_seconds": 2.5,
+      "how": ["의자 옆에 서요", "몸무게를 앞발 쪽으로 옮겨요", "다시 뒤로 옮겨요"],
+      "cues": ["앞으로 옮기고", "돌아와요", "흔들리면 의자를 잡으세요"],
+      "caution": "어지러우면 바로 앉으세요"
+    },
+    "tandem_stand": {
+      "name": "발 앞뒤로 붙여 서기", "seated": false, "supported": false, "seconds": 45,
+      "poses": ["stand_tandem", "stand"], "tempo_seconds": 5,
+      "how": ["의자 옆에 서요", "한 발을 다른 발 바로 앞에 두어요", "다섯을 세고 발을 바꿔요"],
+      "cues": ["버텨요, 하나, 둘, 셋, 넷, 다섯", "발을 바꿔요", "흔들리면 의자를 잡으세요"],
+      "caution": "흔들리면 바로 의자를 잡으세요"
+    }
+  },
+  "activities": {
+    "chair_march":       {"warmup": ["seated_breath", "ankle_pump"],   "main": ["seated_march", "seated_march_arms", "seated_punch"],               "cooldown": ["seated_breath"]},
+    "home_walk":         {"warmup": ["ankle_pump", "seated_march"],    "main": ["home_walk_easy", "home_walk_brisk"],                               "cooldown": ["seated_breath"]},
+    "outdoor_walk":      {"warmup": ["ankle_pump", "seated_march"],    "main": ["outdoor_walk_easy", "outdoor_walk_brisk"],                         "cooldown": ["seated_breath"]},
+    "chair_strength":    {"warmup": ["shoulder_roll", "ankle_pump"],   "main": ["seated_knee_extend", "seated_arm_press", "seated_squeeze"],        "cooldown": ["seated_breath"]},
+    "sit_to_stand":      {"warmup": ["shoulder_roll", "seated_march"], "main": ["sit_to_stand", "seated_knee_extend", "march_standing_hold"],        "cooldown": ["seated_breath"]},
+    "chair_balance":     {"warmup": ["seated_breath", "ankle_pump"],   "main": ["seated_lean", "seated_leg_hold", "seated_reach"],                  "cooldown": ["seated_breath"]},
+    "supported_balance": {"warmup": ["ankle_pump", "seated_march"],    "main": ["heel_raise_hold", "weight_shift_hold", "one_leg_hold"],            "cooldown": ["seated_breath"]},
+    "free_balance":      {"warmup": ["ankle_pump", "seated_march"],    "main": ["weight_shift_free", "tandem_stand", "heel_raise_hold"],            "cooldown": ["seated_breath"]}
+  }
+}
