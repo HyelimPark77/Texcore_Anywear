@@ -6,6 +6,7 @@ import 'package:safety_engine/safety_engine.dart';
 import 'api.dart';
 import 'exercises.dart';
 import 'heart_rate.dart';
+import 'reminders.dart';
 import 'services.dart';
 import 'vitals.dart';
 
@@ -148,12 +149,39 @@ class AppState extends ChangeNotifier {
     name = me['name'] as String?;
     birthYear = me['birth_year'] as int?;
     health = (me['health'] as Map?)?.cast<String, dynamic>();
-    goal = (me['settings'] as Map?)?['goal'] as String?;
+    settings = {...?(me['settings'] as Map?)?.cast<String, dynamic>()};
+    goal = settings['goal'] as String?;
     notifyListeners();
   }
 
   /// 온보딩에서 고른 '운동해서 하고 싶은 일'(6-5). 홈에서 진행을 그 말로 보여 준다.
   String? goal;
+
+  /// 편한 시간·앵커·목표·낙상 걱정(PUT /me/settings 와 같은 모양).
+  Map<String, dynamic> settings = {};
+
+  Future<void> saveSettings(Map<String, dynamic> s) async {
+    await api.putSettings(s);
+    settings = {...s};
+    goal = s['goal'] as String?;
+    notifyListeners();
+    await syncReminders();
+  }
+
+  /// 기기 알림(워치 진동 전달 포함). 없으면 알림 없이 쓴다(테스트·웹).
+  Reminders? reminders;
+  StreamSubscription<int>? _openedSub;
+
+  /// 서버가 정한 오늘 알림을 기기에 건다. 실패해도 앱 사용은 막지 않는다.
+  Future<void> syncReminders() async {
+    final r = reminders;
+    if (r == null || !loggedIn) return;
+    _openedSub ??= r.opened.listen((id) => api.post('/me/notifications/$id/opened').catchError((_) => null));
+    try {
+      final list = await api.get('/me/notifications') as List;
+      await r.replace([for (final j in list) Reminder.fromJson((j as Map).cast<String, dynamic>())]);
+    } catch (_) {}
+  }
 
   /// 가입 때 받은 건강 답변(질환·몸 상태 질문·박동기·의사 확인). PUT /me/health 와 같은 모양.
   Map<String, dynamic>? health;

@@ -8,6 +8,7 @@ import 'core/app_state.dart';
 import 'core/exercises.dart';
 import 'core/health_reader.dart';
 import 'core/heart_rate.dart';
+import 'core/reminders.dart';
 import 'core/services.dart';
 import 'screens/daily.dart';
 import 'screens/onboarding.dart';
@@ -49,6 +50,7 @@ Future<void> main() async {
     state.readHr = readHeartRates;
     state.readSteps = readSteps;
   }
+  state.reminders = PlatformReminders();
   state.exercises = ExerciseLibrary.parse(await rootBundle.loadString('assets/exercises.json'));
   await state.restore();
   if (state.loggedIn) {
