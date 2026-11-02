@@ -4,6 +4,7 @@ import 'package:safety_engine/safety_engine.dart';
 
 import '../core/api.dart';
 import '../core/app_state.dart';
+import '../core/vitals.dart';
 import '../ui/kit.dart';
 import 'onboarding.dart';
 import 'session.dart';
@@ -51,7 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return SeniorScaffold(
           title: '${app.name ?? ''}님, 안녕하세요',
           showBack: false,
-          primaryLabel: '혈압 재고 시작하기',
+          primaryLabel: '운동 시작하기',
           onPrimary: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrecheckScreen())),
           secondaryLabel: restart ? '처음부터 다시 하기' : null,
           onSecondary: restart
@@ -63,7 +64,10 @@ class _HomeScreenState extends State<HomeScreen> {
           body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Text('오늘 할 운동', style: Theme.of(context).textTheme.titleLarge),
             Text('$minutes분', style: const TextStyle(fontSize: 64, fontWeight: FontWeight.w900)),
-            const Text('혈압을 재면 오늘 몸 상태에 맞춰 골라 드려요.'),
+            // 운동 전 점검(5-2)은 건너뛸 수 없다. 시작 버튼 하나 뒤에 두고, 건강 앱 혈압계 기록이 있으면 확인만 하게 한다.
+            Text(app.readBp != null
+                ? '시작하면 먼저 혈압과 몸 상태를 확인해요. 혈압계 기록이 건강 앱에 있으면 자동으로 넣어 드려요.'
+                : '시작하면 먼저 혈압과 몸 상태를 확인하고, 오늘 몸에 맞는 운동을 골라 드려요.'),
             const SizedBox(height: 16),
             Row(children: [
               const Icon(Icons.local_fire_department, size: 32),
@@ -118,6 +122,47 @@ class _PrecheckScreenState extends State<PrecheckScreen> {
   final _sbp = TextEditingController(), _dbp = TextEditingController(), _hr = TextEditingController();
   final Set<String> _symptoms = {}, _conditions = {};
   bool _busy = false;
+  // 측정 출처(안전 규칙 source_grades). 건강 앱 팔 혈압계 기록으로 채웠다가 어르신이 고치면 'manual'.
+  String _bpSource = 'manual', _hrSource = 'manual';
+  VitalsSnapshot? _vitals;
+  bool _loadingVitals = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_vitals == null && !_loadingVitals) _loadVitals();
+  }
+
+  Future<void> _loadVitals() async {
+    final app = AppScope.of(context);
+    if (app.readBp == null) {
+      _vitals = VitalsSnapshot.empty;
+      return;
+    }
+    setState(() => _loadingVitals = true);
+    final v = await app.latestVitals();
+    if (!mounted) return;
+    setState(() {
+      _loadingVitals = false;
+      _vitals = v;
+      final r = v.fresh;
+      // 이미 손으로 넣기 시작했으면 덮어쓰지 않는다
+      if (r != null && _sbp.text.isEmpty && _dbp.text.isEmpty && _hr.text.isEmpty) {
+        _sbp.text = '${r.systolic}';
+        _dbp.text = '${r.diastolic}';
+        _bpSource = r.source;
+        if (r.pulse != null) {
+          _hr.text = '${r.pulse}';
+          _hrSource = r.source;
+        }
+        void toManual(TextEditingController c, String filled, void Function() set) =>
+            c.addListener(() => c.text != filled ? set() : null);
+        toManual(_sbp, _sbp.text, () => _bpSource = 'manual');
+        toManual(_dbp, _dbp.text, () => _bpSource = 'manual');
+        if (r.pulse != null) toManual(_hr, _hr.text, () => _hrSource = 'manual');
+      }
+    });
+  }
 
   static const _conditionLabels = {
     'fever': '열이 나거나 감기·설사가 있어요',
@@ -144,6 +189,8 @@ class _PrecheckScreenState extends State<PrecheckScreen> {
       'systolic': num.tryParse(_sbp.text),
       'diastolic': num.tryParse(_dbp.text),
       'resting_hr': num.tryParse(_hr.text),
+      'bp_source': _bpSource,
+      'hr_source': _hrSource,
       'symptoms': _symptoms.toList(),
       'conditions': conditions,
     };
@@ -153,7 +200,13 @@ class _PrecheckScreenState extends State<PrecheckScreen> {
       local = preCheck(
         app.rules!,
         Profile(age: app.age),
-        Vitals(systolic: body['systolic'] as num?, diastolic: body['diastolic'] as num?, restingHr: body['resting_hr'] as num?),
+        Vitals(
+          systolic: body['systolic'] as num?,
+          diastolic: body['diastolic'] as num?,
+          restingHr: body['resting_hr'] as num?,
+          bpSource: _bpSource,
+          hrSource: _hrSource,
+        ),
         symptoms: _symptoms,
         conditions: conditions,
       );
@@ -182,7 +235,7 @@ class _PrecheckScreenState extends State<PrecheckScreen> {
     switch (_step) {
       case 0:
         return SeniorScaffold(
-          title: '혈압을 넣어 주세요',
+          title: '먼저 몸 상태를 확인해요',
           primaryLabel: '다음',
           onPrimary: () {
             if (_sbp.text.isEmpty || _dbp.text.isEmpty || _hr.text.isEmpty) {
@@ -191,8 +244,10 @@ class _PrecheckScreenState extends State<PrecheckScreen> {
             }
             setState(() => _step = 1);
           },
-          body: Column(children: [
-            const Text('의자에 앉아 5분 쉰 뒤, 팔에 감는 혈압계로 재 주세요.'),
+          body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Text(_vitals?.fresh != null ? '숫자가 맞으면 다음을 누르세요. 다르면 고쳐 주세요.' : '의자에 앉아 5분 쉰 뒤, 팔에 감는 혈압계로 재 주세요.'),
+            if (_loadingVitals) const Padding(padding: EdgeInsets.only(top: 12), child: Text('건강 앱 기록을 확인하는 중이에요')),
+            if (_vitals != null) _VitalsNotes(_vitals!),
             const SizedBox(height: 16),
             BigNumberField(label: '높은 쪽 숫자(수축기)', unit: 'mmHg', controller: _sbp),
             BigNumberField(label: '낮은 쪽 숫자(이완기)', unit: 'mmHg', controller: _dbp),
@@ -242,6 +297,36 @@ class _PrecheckScreenState extends State<PrecheckScreen> {
           ),
         ]),
       );
+}
+
+/// 건강 앱에서 가져온 혈압 안내: 채운 기록의 출처·시각, 오래된 기록, 워치 혈압(참고용).
+class _VitalsNotes extends StatelessWidget {
+  final VitalsSnapshot v;
+  const _VitalsNotes(this.v);
+
+  Widget _note(IconData icon, String text, {bool strong = false}) => Padding(
+        padding: const EdgeInsets.only(top: 12),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Icon(icon, size: 32),
+          const SizedBox(width: 10),
+          Expanded(child: Text(text, style: strong ? const TextStyle(fontWeight: FontWeight.w800) : null)),
+        ]),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final fresh = v.fresh, stale = v.stale, watch = v.watch;
+    final watchHigh = watch != null && (watch.systolic >= watchHighSystolic || watch.diastolic >= watchHighDiastolic);
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      if (fresh != null)
+        _note(Icons.check_circle, '건강 앱의 혈압계 기록을 넣어 두었어요 (${fresh.sourceName}, ${_ago(fresh.at)})'
+            '${fresh.pulse == null ? '. 맥박은 직접 넣어 주세요' : ''}'),
+      if (fresh == null && stale != null) _note(Icons.schedule, '마지막 혈압계 기록이 ${_ago(stale.at)}이라 지금 다시 재 주세요.'),
+      if (watch != null)
+        _note(Icons.watch, '참고: 워치 혈압 ${watch.systolic}/${watch.diastolic} (${_ago(watch.at)}). 워치 혈압은 참고용이라 점검에는 쓰지 않아요.'),
+      if (watchHigh && fresh == null) _note(Icons.warning_amber, '워치 혈압이 높게 나왔어요. 팔에 감는 혈압계로 꼭 다시 재 주세요.', strong: true),
+    ]);
+  }
 }
 
 // ---------------- 6. 신호등 결과 ----------------

@@ -5,6 +5,7 @@ import 'package:safety_engine/safety_engine.dart';
 
 import 'api.dart';
 import 'exercises.dart';
+import 'vitals.dart';
 import 'heart_rate.dart';
 import 'services.dart';
 
@@ -27,6 +28,21 @@ class AppState extends ChangeNotifier {
 
   /// 운동 동작 안내 콘텐츠(assets/exercises.json). 없으면 종류별 짧은 문장만 말한다.
   ExerciseLibrary? exercises;
+
+  /// 건강 앱 혈압 기록 읽기(운동 전 점검 자동 채우기). 없으면 손으로만 넣는다.
+  BpReader? readBp;
+
+  /// 오늘 점검에 쓸 혈압: 팔 혈압계 최근 기록은 채우고, 워치 혈압은 참고로만.
+  Future<VitalsSnapshot> latestVitals() async {
+    final read = readBp;
+    if (read == null) return VitalsSnapshot.empty;
+    final now = DateTime.now();
+    try {
+      return pickVitals(await read(now.subtract(const Duration(hours: 12)), now).timeout(const Duration(seconds: 5)), now);
+    } catch (_) {
+      return VitalsSnapshot.empty; // 못 읽으면 손으로 넣는다
+    }
+  }
   StreamSubscription? _watchSubs, _watchStatusSub;
   String? name;
   int? birthYear;

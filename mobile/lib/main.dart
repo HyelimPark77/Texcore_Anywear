@@ -21,8 +21,9 @@ const watchBridgeUrl = String.fromEnvironment('WATCH_BRIDGE_URL', defaultValue: 
 // 심박 출처: health(건강 앱 경유, 실기기) / bridge(PC 브리지, 에뮬레이터). 비우면 아이폰은 health, 그 밖은 bridge.
 const hrSource = String.fromEnvironment('HR_SOURCE');
 
+bool get useHealth => hrSource.isEmpty ? defaultTargetPlatform == TargetPlatform.iOS : hrSource == 'health';
+
 HeartRateSource watchSource() {
-  final useHealth = hrSource.isEmpty ? defaultTargetPlatform == TargetPlatform.iOS : hrSource == 'health';
   return useHealth
       ? HealthHeartRateSource(authorize: authorizeHealth, read: readHeartRates)
       : BridgeHeartRateSource(watchBridgeUrl);
@@ -42,6 +43,8 @@ Future<void> main() async {
     allowDraftRules: allowDraftRules,
     watch: watchSource(),
   );
+  // 건강 앱 경유일 때는 운동 전 점검의 혈압도 건강 앱 기록(팔 혈압계)으로 채운다
+  if (useHealth) state.readBp = readBloodPressure;
   state.exercises = ExerciseLibrary.parse(await rootBundle.loadString('assets/exercises.json'));
   await state.restore();
   if (state.loggedIn) {
