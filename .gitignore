@@ -35,3 +35,6 @@ key.properties
 mobile/.vscode/settings.json
 .DS_Store
 .idea/
+
+# 개발 서버 /app/ 에서 보는 웹 빌드 결과물
+/web/

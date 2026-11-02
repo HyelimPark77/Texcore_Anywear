@@ -183,6 +183,7 @@ void main() {
     final h = Harness();
     await h.start(tester);
     await tester.pump(const Duration(milliseconds: 600));
+    await tapText(tester, '내 정보'); // 아래 메뉴
     for (final (expected, label) in [(1.25, '글자 크기 2단계'), (1.5, '글자 크기 3단계'), (1.0, '글자 크기 1단계')]) {
       await tester.ensureVisible(find.textContaining('글자 크기'));
       await tester.tap(find.textContaining('글자 크기'));
@@ -224,5 +225,41 @@ void main() {
       await check(tester);
       handle.dispose();
     });
+  });
+
+  testWidgets('아래 메뉴: 오늘 · 기록 · 가족 · 내 정보', (tester) async {
+    final semantics = tester.ensureSemantics();
+    final h = Harness();
+    h.server.routes['GET /me/week'] = (_) => {
+          'days': [
+            {'date': '2026-10-27', 'stamp': true, 'minutes': 3},
+            {'date': '2026-10-28', 'stamp': false, 'minutes': 0},
+            {'date': '2026-10-29', 'stamp': true, 'minutes': 5},
+          ],
+          'streak': 1,
+        };
+    await h.start(tester);
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.text('운동 시작하기'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('이번 주 0/3')), findsOneWidget); // 머리 카드 도장 고리
+
+    await tapText(tester, '기록');
+    await tester.pump(const Duration(milliseconds: 800));
+    expect(find.text('이번 주 기록'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('도장 2 개')), findsOneWidget);
+    expect(find.bySemanticsLabel('목요일 5분, 도장'), findsOneWidget);
+
+    await tapText(tester, '가족');
+    expect(find.text('보호자 연결'), findsOneWidget);
+
+    await tapText(tester, '내 정보');
+    expect(find.text('김영자님'), findsOneWidget);
+    await tapText(tester, '안내 음성');
+    expect(h.state.voiceOn, isFalse);
+    expect(find.text('꺼짐'), findsOneWidget);
+
+    await tapText(tester, '오늘');
+    expect(find.text('운동 시작하기'), findsOneWidget);
+    semantics.dispose();
   });
 }

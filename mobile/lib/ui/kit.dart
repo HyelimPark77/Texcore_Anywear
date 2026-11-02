@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -31,12 +32,21 @@ class Palette {
   Color get onWarnTint => light ? const Color(0xFF633806) : const Color(0xFFFAC775);
   Color get muted => light ? const Color(0xFF4A5565) : const Color(0xFFB4BCC8);
   Color get well => light ? const Color(0xFFF1F3F6) : const Color(0xFF1C2532);
+
+  /// 홈 머리 카드 그라데이션(짙은 청록 → 청록). 위 글자는 흰색.
+  // 흰 글자 명암비 4.5:1 이상이 나오도록 밝은 쪽도 짙게(접근성 검사)
+  List<Color> get hero => light ? const [Color(0xFF063D33), Color(0xFF0F6E56)] : const [Color(0xFF04342C), Color(0xFF0B5A47)];
+
+  /// 수치 칸 아이콘 원 색(걸음·심박·혈압). 색만으로 뜻을 전하지 않고 글자와 함께 쓴다.
+  Color get steps => light ? const Color(0xFF185FA5) : const Color(0xFF85B7EB);
+  Color get heart => light ? const Color(0xFFA32D2D) : const Color(0xFFF09595);
+  Color get pressure => light ? const Color(0xFF534AB7) : const Color(0xFFAFA9EC);
 }
 
 ThemeData seniorTheme(Brightness b) {
   final light = b == Brightness.light;
   final care = Palette(light).brand;
-  final canvas = light ? const Color(0xFFF2F4F7) : const Color(0xFF0B1017);
+  final canvas = light ? const Color(0xFFF3F6F5) : const Color(0xFF0B1017); // 살짝 청록빛 도는 바탕
   final surface = light ? Colors.white : const Color(0xFF141B25);
   final line = light ? const Color(0xFFE2E7EE) : const Color(0xFF263142);
   final scheme = ColorScheme.fromSeed(
@@ -62,11 +72,15 @@ ThemeData seniorTheme(Brightness b) {
     useMaterial3: true,
     scaffoldBackgroundColor: canvas,
     appBarTheme: AppBarTheme(backgroundColor: canvas, surfaceTintColor: Colors.transparent, elevation: 0, scrolledUnderElevation: 0),
+    // 카드는 흰 바탕 + 아주 옅은 그림자로 떠 보이게(다크 모드는 그림자 대신 테두리)
     cardTheme: CardThemeData(
       color: surface,
-      elevation: 0,
+      elevation: light ? 2 : 0,
+      shadowColor: const Color(0x260F2A24),
+      surfaceTintColor: Colors.transparent,
       margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: line)),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22), side: BorderSide(color: light ? const Color(0xFFE8EEEC) : line)),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
@@ -88,12 +102,34 @@ ThemeData seniorTheme(Brightness b) {
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
       ),
     ),
+    navigationBarTheme: NavigationBarThemeData(
+      height: 84,
+      backgroundColor: surface,
+      surfaceTintColor: Colors.transparent,
+      indicatorColor: Palette(light).brandTint,
+      elevation: 0,
+      labelTextStyle: WidgetStateProperty.resolveWith((s) => TextStyle(
+            fontSize: 17,
+            fontWeight: s.contains(WidgetState.selected) ? FontWeight.w800 : FontWeight.w500,
+            color: s.contains(WidgetState.selected) ? Palette(light).brand : scheme.onSurface,
+          )),
+      iconTheme: WidgetStateProperty.resolveWith(
+          (s) => IconThemeData(size: 30, color: s.contains(WidgetState.selected) ? Palette(light).brand : scheme.onSurface)),
+    ),
+    pageTransitionsTheme: const PageTransitionsTheme(builders: {
+      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
+    }),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(minimumSize: const Size(56, 56), textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: surface,
+      // 칸 이름은 늘 위 테두리에 두고, 큰 글자와 겹치지 않게 위쪽 여백을 넉넉히(모든 입력 칸 공통)
+      floatingLabelBehavior: FloatingLabelBehavior.always,
+      floatingLabelStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: care),
+      contentPadding: const EdgeInsets.fromLTRB(20, 30, 20, 16),
       border: OutlineInputBorder(borderRadius: radius, borderSide: BorderSide(color: line)),
       enabledBorder: OutlineInputBorder(borderRadius: radius, borderSide: BorderSide(color: line, width: 2)),
       focusedBorder: OutlineInputBorder(borderRadius: radius, borderSide: BorderSide(color: scheme.primary, width: 3)),
@@ -118,6 +154,9 @@ class SeniorScaffold extends StatelessWidget {
   /// 보조 버튼을 주 버튼 옆에 나란히(운동 중 '잠깐 쉬기 | 그만').
   final bool sideBySide;
 
+  /// 위 제목 줄을 숨긴다(홈처럼 머리 카드가 제목을 대신할 때).
+  final bool appBar;
+
   const SeniorScaffold({
     super.key,
     required this.title,
@@ -130,13 +169,14 @@ class SeniorScaffold extends StatelessWidget {
     this.showBack = true,
     this.progress,
     this.sideBySide = false,
+    this.appBar = true,
   });
 
   @override
   Widget build(BuildContext context) {
     final canPop = showBack && Navigator.of(context).canPop();
     return Scaffold(
-      appBar: AppBar(
+      appBar: !appBar ? null : AppBar(
         automaticallyImplyLeading: false,
         toolbarHeight: 72,
         leadingWidth: canPop ? 120 : 0,
@@ -264,7 +304,7 @@ class BigNumberField extends StatelessWidget {
             labelText: label,
             labelStyle: const TextStyle(fontSize: 22),
             suffixText: unit,
-            suffixStyle: const TextStyle(fontSize: 22),
+            suffixStyle: TextStyle(fontSize: 20, color: Palette.of(context).muted),
           ),
         ),
       );
@@ -601,5 +641,141 @@ class SectionTitle extends StatelessWidget {
         padding: const EdgeInsets.only(top: 22, bottom: 10),
         child: Semantics(header: true, child: Text(text, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800))),
       );
+}
+
+/// 진행 고리(이번 주 도장 등). 가운데에 큰 글자.
+class ProgressRing extends StatelessWidget {
+  final double value;
+  final String center, caption;
+  final Color color, track;
+  final double size;
+  const ProgressRing({super.key, required this.value, required this.center, required this.caption, required this.color, required this.track, this.size = 116});
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        label: '$caption $center',
+        excludeSemantics: true,
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: value.clamp(0, 1)),
+            duration: const Duration(milliseconds: 900),
+            curve: Curves.easeOutCubic,
+            builder: (_, v, _) => CustomPaint(
+              painter: _RingPainter(v, color, track),
+              child: Center(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Text(center, style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: color, height: 1.1)),
+                  Text(caption, style: TextStyle(fontSize: 14, color: color, fontWeight: FontWeight.w600)),
+                ]),
+              ),
+            ),
+          ),
+        ),
+      );
+}
+
+class _RingPainter extends CustomPainter {
+  final double v;
+  final Color color, track;
+  _RingPainter(this.v, this.color, this.track);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const stroke = 11.0;
+    final rect = Offset.zero & size;
+    final r = rect.deflate(stroke / 2);
+    canvas.drawArc(r, 0, 6.2832, false, Paint()..color = track..style = PaintingStyle.stroke..strokeWidth = stroke);
+    canvas.drawArc(r, -1.5708, 6.2832 * v, false,
+        Paint()..color = color..style = PaintingStyle.stroke..strokeWidth = stroke..strokeCap = StrokeCap.round);
+  }
+
+  @override
+  bool shouldRepaint(_RingPainter o) => o.v != v || o.color != color;
+}
+
+/// 오늘 내 몸 수치 칸: 색 원 아이콘 + 큰 값 + 이름.
+class MetricTile extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String label, value;
+  final String? unit;
+  const MetricTile({super.key, required this.icon, required this.color, required this.label, required this.value, this.unit});
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+        child: Semantics(
+          label: '$label $value ${unit ?? ''}',
+          excludeSemantics: true,
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(color: color.withValues(alpha: 0.14), shape: BoxShape.circle),
+                  child: Icon(icon, size: 24, color: color),
+                ),
+                const SizedBox(height: 10),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text.rich(TextSpan(children: [
+                    TextSpan(text: value, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+                    if (unit != null) TextSpan(text: ' $unit', style: TextStyle(fontSize: 15, color: Palette.of(context).muted)),
+                  ])),
+                ),
+                Text(label, style: TextStyle(fontSize: 16, color: Palette.of(context).muted)),
+              ]),
+            ),
+          ),
+        ),
+      );
+}
+
+/// 설정 목록 한 줄: 색 원 아이콘 + 이름 + 설명 + 오른쪽 값/화살표.
+class SettingRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String? subtitle, trailing;
+  final VoidCallback onTap;
+  const SettingRow({super.key, required this.icon, required this.title, this.subtitle, this.trailing, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Palette.of(context);
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 76),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(color: p.brandTint, borderRadius: BorderRadius.circular(14)),
+                child: Icon(icon, size: 26, color: p.brand),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+                  if (subtitle != null) Text(subtitle!, style: TextStyle(fontSize: 16, color: p.muted)),
+                ]),
+              ),
+              if (trailing != null) Text(trailing!, style: TextStyle(fontSize: 18, color: p.brand, fontWeight: FontWeight.w800)),
+              Icon(Icons.chevron_right, size: 30, color: p.muted),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
 }
 

@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import '../core/api.dart';
 import '../core/app_state.dart';
 import '../ui/kit.dart';
-import 'daily.dart';
 import 'habit.dart';
+import 'shell.dart';
 
 // ---------------- 1. 시작·본인인증 ----------------
 class LoginScreen extends StatefulWidget {

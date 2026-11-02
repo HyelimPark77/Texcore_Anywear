@@ -121,17 +121,18 @@ void main() {
     expect(h.reminders.cancelledDone, 1);
   });
 
-  testWidgets('알림·목표는 홈에서 언제든 바꾼다', (tester) async {
+  testWidgets('알림·목표는 아래 메뉴 내 정보에서 언제든 바꾼다', (tester) async {
     final h = Harness();
     h.state.settings = {'preferred_time': '09:00', 'anchor': 'time', 'goal': null, 'fall_concern': false};
     await h.start(tester);
     await tester.pump(const Duration(milliseconds: 600));
+    await tapText(tester, '내 정보'); // 아래 메뉴
     await tapText(tester, '알림·목표');
     await tapText(tester, '저녁 6시');
     await tapText(tester, '네, 붙잡을 곳이 있는 운동으로 해 주세요');
     await tapText(tester, '저장하기');
     await tester.pump(const Duration(milliseconds: 300));
     expect(h.server.bodies('PUT /me/settings').single, {'preferred_time': '18:00', 'anchor': 'time', 'goal': null, 'fall_concern': true});
-    expect(find.text('운동 시작하기'), findsOneWidget); // 홈으로 돌아옴
+    expect(find.text('알림·목표'), findsOneWidget); // 내 정보로 돌아옴
   });
 }

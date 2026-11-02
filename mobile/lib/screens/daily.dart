@@ -8,20 +8,20 @@ import '../core/heart_rate.dart';
 import '../core/vitals.dart';
 import '../ui/figure.dart';
 import '../ui/kit.dart';
-import 'habit.dart';
 import 'health.dart';
 import 'onboarding.dart';
 import 'session.dart';
 
 // ---------------- 4. 오늘의 운동(홈) ----------------
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class TodayTab extends StatefulWidget {
+  const TodayTab({super.key});
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<TodayTab> createState() => _TodayTabState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _TodayTabState extends State<TodayTab> {
   Future<Map<String, dynamic>>? _today;
+  VitalsSnapshot? _vitals; // 오늘 내 몸: 최근 혈압(건강 앱)
 
   @override
   void didChangeDependencies() {
@@ -34,6 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (w != null && !w.realtime && !w.connected) WidgetsBinding.instance.addPostFrameCallback((_) => app.connectWatch());
       app.loadSteps();
       app.syncReminders();
+      if (app.readBp != null) app.latestVitals().then((v) => mounted ? setState(() => _vitals = v) : null);
     }
   }
 
@@ -76,9 +77,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   _reload();
                 }
               : null,
+          appBar: false,
           body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Text(_todayLabel(), style: TextStyle(fontSize: 18, color: Palette.of(context).muted)),
-            const SizedBox(height: 12),
+            _Hero(
+              name: app.name ?? '',
+              stamps: (rewards['weekly_stamps'] as num).toInt(),
+              streak: (rewards['streak'] as num).toInt(),
+              goal: app.goal,
+            ),
+            const SizedBox(height: 18),
             // 의사 확인이 필요하면 오늘의 운동 대신 병원 확인 카드
             if (blocked)
               const ToneCard(
@@ -88,39 +95,39 @@ class _HomeScreenState extends State<HomeScreen> {
                 subtitle: '운동을 시작하기 전에 의사 선생님 확인이 필요해요. 아래 버튼을 누르면 이유와 방법을 알려 드려요.',
               )
             else
-              ToneCard(
-                icon: t['state'] == 'FEAR' ? Icons.event_seat : Icons.directions_walk,
-                label: '오늘의 운동',
-                title: '$minutes분',
-                // 운동 전 점검(5-2)은 건너뛸 수 없다. 시작 버튼 하나 뒤에 두고, 건강 앱 기록이 있으면 확인만 하게 한다.
-                subtitle: t['state'] == 'FEAR' ? '의자에 앉아서 할 수 있어요. 시작하면 먼저 몸 상태를 확인해요.' : '시작하면 먼저 몸 상태를 확인하고, 오늘에 맞게 골라 드려요.',
+              // 운동 전 점검(5-2)은 건너뛸 수 없다. 시작 버튼 하나 뒤에 두고, 건강 앱 기록이 있으면 확인만 하게 한다.
+              _TodayWorkout(minutes: minutes as int, seated: t['state'] == 'FEAR'),
+            const SectionTitle('오늘 내 몸'),
+            Row(children: [
+              MetricTile(
+                icon: Icons.directions_walk,
+                color: Palette.of(context).steps,
+                label: '걸음',
+                value: app.stepsToday == null ? '-' : _comma(app.stepsToday!),
               ),
-            const SectionTitle('이번 주 도장'),
-            StampRow(filled: (rewards['weekly_stamps'] as num).toInt(), slots: 3),
-            const SizedBox(height: 8),
-            Text(
-              [
-                if ((rewards['streak'] as num) > 0) '${rewards['streak']}일째 이어가는 중',
-                if (app.goal != null) '"${app.goal}"에 한 걸음씩',
-                if ((rewards['streak'] as num) == 0 && app.goal == null) '오늘 하면 첫 도장이에요',
-              ].join(' · '),
-              style: TextStyle(fontSize: 18, color: Palette.of(context).muted),
-            ),
-            if (t['has_new_cheer'] == true)
-              const NoteRow(Icons.favorite, '가족이 응원을 보냈어요. 운동이 끝나면 들려 드릴게요.'),
+              const SizedBox(width: 8),
+              MetricTile(
+                icon: Icons.favorite,
+                color: Palette.of(context).heart,
+                label: '심박',
+                value: app.lastHr == null ? '-' : '${app.lastHr!.bpm}',
+              ),
+              const SizedBox(width: 8),
+              MetricTile(
+                icon: Icons.bloodtype,
+                color: Palette.of(context).pressure,
+                label: '혈압',
+                value: _vitals?.fill == null ? '-' : '${_vitals!.fill!.systolic}/${_vitals!.fill!.diastolic}',
+              ),
+            ]),
+            if (t['has_new_cheer'] == true) ...[
+              const SizedBox(height: 14),
+              const ToneCard(tone: 'warn', icon: Icons.favorite, title: '가족이 응원을 보냈어요', subtitle: '운동이 끝나면 들려 드릴게요.'),
+            ],
             for (final p in prompts)
               if (_prompts[p] != null && p != 'play_guardian_cheer') NoteRow(Icons.chat_bubble_outline, _prompts[p]!),
-            if (t['ask_time_change'] == true) const NoteRow(Icons.schedule, '알림을 몇 번 못 보셨네요. 시간을 바꿔 볼까요? 아래 "알림·목표"에서 바꿀 수 있어요.'),
+            if (t['ask_time_change'] == true) const NoteRow(Icons.schedule, '알림을 몇 번 못 보셨네요. 시간을 바꿔 볼까요? 아래 "내 정보 → 알림·목표"에서 바꿀 수 있어요.'),
             if (app.watch != null) _WatchRow(app: app),
-            const SizedBox(height: 20),
-            TwoColumn(children: [
-              _HomeLink(icon: Icons.calendar_month, label: '이번 주 기록', onTap: () => _push(context, const WeekScreen())),
-              _HomeLink(icon: Icons.family_restroom, label: '보호자 연결', onTap: () => _push(context, const GuardianScreen())),
-              _HomeLink(icon: Icons.medical_information, label: '내 건강 정보', onTap: () => _push(context, const HealthInfoScreen())),
-              _HomeLink(icon: Icons.notifications_active, label: '알림·목표', onTap: () => _push(context, const HabitSetupScreen())),
-              _HomeLink(
-                  icon: Icons.format_size, label: '글자 크기 ${((app.textScale - 1) / 0.25).round() + 1}단계', onTap: app.cycleTextScale),
-            ]),
           ]),
         );
       },
@@ -128,30 +135,129 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-void _push(BuildContext context, Widget screen) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
-
 String _todayLabel() {
   final d = DateTime.now();
   const days = ['월', '화', '수', '목', '금', '토', '일'];
   return '${d.month}월 ${d.day}일 ${days[d.weekday - 1]}요일';
 }
 
-class _HomeLink extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  const _HomeLink({required this.icon, required this.label, required this.onTap});
+String _greeting(String name) {
+  final h = DateTime.now().hour;
+  final when = h < 11 ? '좋은 아침이에요' : (h < 17 ? '좋은 오후예요' : '편안한 저녁이에요');
+  // 이름과 인사를 두 줄로 나눠 낱말 중간에서 줄이 바뀌지 않게
+  return name.isEmpty ? when : '$name님,\n$when';
+}
+
+/// 홈 머리 카드: 날짜·인사, 이번 주 도장 고리, 이어 온 날, 목표.
+class _Hero extends StatelessWidget {
+  final String name;
+  final int stamps, streak;
+  final String? goal;
+  const _Hero({required this.name, required this.stamps, required this.streak, this.goal});
+
+  /// 주 3회(계획서 KPI '4주차 주 3회 이상')를 이번 주 목표로 보여 준다.
+  static const weeklyTarget = 3;
 
   @override
-  Widget build(BuildContext context) => OutlinedButton(
-        onPressed: onTap,
-        style: OutlinedButton.styleFrom(alignment: Alignment.center, padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8)),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 32, color: Palette.of(context).brand),
-          const SizedBox(height: 4),
-          Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18)),
+  Widget build(BuildContext context) {
+    final p = Palette.of(context);
+    const on = Colors.white;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 22, 18, 20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(colors: p.hero, begin: Alignment.topLeft, end: Alignment.bottomRight),
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(_todayLabel(), style: TextStyle(fontSize: 17, color: on.withValues(alpha: 0.85))),
+              const SizedBox(height: 4),
+              Semantics(
+                header: true,
+                child: Text(_greeting(name), style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: on, height: 1.25)),
+              ),
+            ]),
+          ),
+          const SizedBox(width: 10),
+          ProgressRing(
+            value: stamps / weeklyTarget,
+            center: '$stamps/$weeklyTarget',
+            caption: '이번 주',
+            color: on,
+            track: on.withValues(alpha: 0.22),
+            size: 104,
+          ),
+        ]),
+        const SizedBox(height: 14),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          _HeroChip(icon: Icons.local_fire_department, text: streak > 0 ? '$streak일째 이어가는 중' : '오늘 하면 첫 도장이에요'),
+          if (goal != null) _HeroChip(icon: Icons.flag, text: '"$goal"에 한 걸음씩'),
+        ]),
+      ]),
+    );
+  }
+}
+
+class _HeroChip extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  const _HeroChip({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(20)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 20, color: Colors.white),
+          const SizedBox(width: 6),
+          Flexible(child: Text(text, style: const TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.w600))),
         ]),
       );
+}
+
+/// 오늘의 운동 카드: 시간과 동작 그림.
+class _TodayWorkout extends StatelessWidget {
+  final int minutes;
+  final bool seated;
+  const _TodayWorkout({required this.minutes, required this.seated});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Palette.of(context);
+    final move = AppScope.of(context).exercises?.moves[seated ? 'seated_march' : 'home_walk_easy'];
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(children: [
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(color: p.brandTint, borderRadius: BorderRadius.circular(12)),
+                child: Text('오늘의 운동', style: TextStyle(fontSize: 15, color: p.onBrandTint, fontWeight: FontWeight.w700)),
+              ),
+              const SizedBox(height: 8),
+              Text('$minutes분', style: const TextStyle(fontSize: 44, fontWeight: FontWeight.w900, height: 1.1)),
+              const SizedBox(height: 4),
+              Text(seated ? '의자에 앉아서 할 수 있어요' : '오늘 몸에 맞게 골라 드려요', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 6),
+              Text('시작하면 먼저 몸 상태를 확인해요', style: TextStyle(fontSize: 16, color: p.muted)),
+            ]),
+          ),
+          if (move != null)
+            Container(
+              width: 104,
+              height: 132,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: p.well, borderRadius: BorderRadius.circular(20)),
+              child: MoveFigure(poseNames: move.poses, tempoSeconds: move.tempoSeconds, label: move.name),
+            ),
+        ]),
+      ),
+    );
+  }
 }
 
 // ---------------- 5. 운동 전 점검(혈압·증상) ----------------
@@ -605,32 +711,61 @@ class _WatchSummaryCardState extends State<WatchSummaryCard> {
 }
 
 // ---------------- 11. 이번 주 기록 ----------------
-class WeekScreen extends StatelessWidget {
+class WeekScreen extends StatefulWidget {
   const WeekScreen({super.key});
+  @override
+  State<WeekScreen> createState() => _WeekScreenState();
+}
+
+class _WeekScreenState extends State<WeekScreen> {
   static const _days = ['월', '화', '수', '목', '금', '토', '일'];
+  Future<Map<String, dynamic>>? _week;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _week ??= AppScope.of(context).api.week(); // 탭을 오가며 다시 그려도 한 번만 불러온다
+  }
 
   @override
   Widget build(BuildContext context) => FutureBuilder<Map<String, dynamic>>(
-        future: AppScope.of(context).api.week(),
+        future: _week,
         builder: (context, snap) {
           if (!snap.hasData) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-          final days = snap.data!['days'] as List;
+          final p = Palette.of(context);
+          final days = [...(snap.data!['days'] as List).cast<Map>()]..sort((a, b) => (a['date'] as String).compareTo(b['date'] as String));
+          final stamps = days.where((d) => d['stamp'] == true).length;
+          final total = days.fold<num>(0, (sum, d) => sum + (d['minutes'] as num));
           return SeniorScaffold(
             title: '이번 주 기록',
+            showBack: Navigator.of(context).canPop(),
+            primaryLabel: null,
             body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              ToneCard(
-                icon: Icons.local_fire_department,
-                title: '${snap.data!['streak']}일째 이어가는 중',
-                subtitle: '이번 주 도장 ${days.where((d) => d['stamp'] == true).length}개',
-              ),
-              const SizedBox(height: 12),
-              for (final d in days)
+              Row(children: [
+                MetricTile(icon: Icons.verified, color: p.brand, label: '도장', value: '$stamps', unit: '개'),
+                const SizedBox(width: 8),
+                MetricTile(icon: Icons.timer, color: p.steps, label: '운동 시간', value: '${total.round()}', unit: '분'),
+                const SizedBox(width: 8),
+                MetricTile(icon: Icons.local_fire_department, color: p.heart, label: '이어 온 날', value: '${snap.data!['streak']}', unit: '일'),
+              ]),
+              const SectionTitle('요일별 운동'),
+              if (days.isEmpty)
+                const NoteRow(Icons.info_outline, '아직 기록이 없어요. 오늘 첫 운동을 해 보세요.')
+              else
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 18, 12, 12),
+                    child: _WeekBars(days: days, labels: _days),
+                  ),
+                ),
+              const SizedBox(height: 8),
+              for (final d in days.reversed)
                 Card(
                   margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
                     minTileHeight: 64,
                     leading: Icon(d['stamp'] == true ? Icons.check_circle : Icons.radio_button_unchecked,
-                        size: 36, color: d['stamp'] == true ? Palette.of(context).brand : Palette.of(context).muted),
+                        size: 36, color: d['stamp'] == true ? p.brand : p.muted),
                     title: Text('${_days[DateTime.parse(d['date'] as String).weekday - 1]}요일 '
                         '${d['stamp'] == true ? '도장 받음' : '쉼'}${(d['minutes'] as num) > 0 ? ' · ${d['minutes']}분' : ''}'),
                   ),
@@ -640,6 +775,57 @@ class WeekScreen extends StatelessWidget {
           );
         },
       );
+}
+
+/// 요일별 운동 시간 막대(도장 받은 날은 진한 색 + 체크). 숫자도 함께 적어 색만으로 읽지 않게.
+class _WeekBars extends StatelessWidget {
+  final List<Map> days;
+  final List<String> labels;
+  const _WeekBars({required this.days, required this.labels});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Palette.of(context);
+    final most = days.map((d) => (d['minutes'] as num).toDouble()).fold<double>(10, (a, b) => a > b ? a : b);
+    return SizedBox(
+      height: 200,
+      child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+        for (final d in days)
+          Expanded(
+            child: Semantics(
+              container: true,
+              label: '${labels[DateTime.parse(d['date'] as String).weekday - 1]}요일 ${d['minutes']}분${d['stamp'] == true ? ', 도장' : ''}',
+              excludeSemantics: true,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                  Text((d['minutes'] as num) > 0 ? '${d['minutes']}' : '', style: TextStyle(fontSize: 15, color: p.muted)),
+                  const SizedBox(height: 4),
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: (d['minutes'] as num) / most),
+                    duration: const Duration(milliseconds: 700),
+                    curve: Curves.easeOutCubic,
+                    builder: (_, v, _) => Container(
+                      height: 8 + 120 * v,
+                      decoration: BoxDecoration(
+                        color: d['stamp'] == true ? p.brand : p.well,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      alignment: Alignment.topCenter,
+                      padding: const EdgeInsets.only(top: 4),
+                      child: d['stamp'] == true && v > 0.2 ? Icon(Icons.check, size: 18, color: p.onBrand) : null,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(labels[DateTime.parse(d['date'] as String).weekday - 1],
+                      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                ]),
+              ),
+            ),
+          ),
+      ]),
+    );
+  }
 }
 
 // ---------------- 12. 보호자 연결 설정 ----------------

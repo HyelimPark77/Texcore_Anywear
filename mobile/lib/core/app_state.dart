@@ -109,6 +109,7 @@ class AppState extends ChangeNotifier {
   Future<void> restore() async {
     api.token = await store.read('token');
     textScale = double.tryParse(await store.read('textScale') ?? '') ?? 1.0;
+    voiceOn = (await store.read('voiceOn')) != 'false';
     final cached = await store.read('rules');
     if (cached != null) {
       try {
@@ -214,6 +215,12 @@ class AppState extends ChangeNotifier {
   Future<void> saveHealth(Map<String, dynamic> h) async {
     await api.putHealth(h);
     health = h;
+    notifyListeners();
+  }
+
+  void toggleVoice() {
+    voiceOn = !voiceOn;
+    store.write('voiceOn', '$voiceOn');
     notifyListeners();
   }
 
