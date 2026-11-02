@@ -3,18 +3,22 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'fakes.dart';
 
-Future<void> toResult(WidgetTester tester, {String sbp = '130', String dbp = '80', String hr = '70', String q1 = '아니요, 괜찮아요'}) async {
+/// 홈 → 운동 시작하기 → 몸 상태 확인(한 화면) → 신호등 결과.
+/// [pick]: 고를 증상·컨디션 칩. '가슴이 아프거나 조여요'면 응급 버튼을 누르고 끝.
+Future<void> toResult(WidgetTester tester, {String sbp = '130', String dbp = '80', String hr = '70', List<String> pick = const []}) async {
   await tester.pump(const Duration(milliseconds: 600)); // 홈 불러오기·화면 전환 끝내기
   await tapText(tester, '운동 시작하기');
   await enter(tester, '높은 쪽 숫자(수축기)', sbp);
   await enter(tester, '낮은 쪽 숫자(이완기)', dbp);
   await enter(tester, '맥박', hr);
-  await tapText(tester, '다음');
-  await tapText(tester, q1);
-  if (q1 == '가슴이 아프거나 조여요') return;
-  await tapText(tester, '아니요');
-  await tapText(tester, '아니요');
-  await tapText(tester, '결과 보기');
+  if (pick.contains('가슴이 아프거나 조여요')) {
+    await tapText(tester, '가슴이 아프거나 조여요');
+    return;
+  }
+  for (final p in pick) {
+    await tapText(tester, p);
+  }
+  await tapText(tester, pick.isEmpty ? '없어요, 괜찮아요' : '이대로 확인하기');
   await tester.pump(const Duration(milliseconds: 600));
 }
 
@@ -127,7 +131,7 @@ void main() {
     final h = Harness();
     h.server.routes['POST /me/prechecks'] = (_) => FakeServer.precheck('EMERGENCY', action: 'EMERGENCY');
     await h.start(tester);
-    await toResult(tester, q1: '가슴이 아프거나 조여요');
+    await toResult(tester, pick: ['가슴이 아프거나 조여요']);
     await tester.pump();
     expect(find.text('지금 바로 도움을 받으세요'), findsOneWidget);
     expect(h.server.bodies('POST /me/prechecks').single['symptoms'], ['chest_pain']);

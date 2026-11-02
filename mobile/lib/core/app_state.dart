@@ -130,8 +130,12 @@ class AppState extends ChangeNotifier {
     name = me['name'] as String?;
     birthYear = me['birth_year'] as int?;
     health = (me['health'] as Map?)?.cast<String, dynamic>();
+    goal = (me['settings'] as Map?)?['goal'] as String?;
     notifyListeners();
   }
+
+  /// 온보딩에서 고른 '운동해서 하고 싶은 일'(6-5). 홈에서 진행을 그 말로 보여 준다.
+  String? goal;
 
   /// 가입 때 받은 건강 답변(질환·몸 상태 질문·박동기·의사 확인). PUT /me/health 와 같은 모양.
   Map<String, dynamic>? health;

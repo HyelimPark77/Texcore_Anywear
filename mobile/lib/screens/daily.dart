@@ -5,6 +5,7 @@ import 'package:safety_engine/safety_engine.dart';
 import '../core/api.dart';
 import '../core/app_state.dart';
 import '../core/vitals.dart';
+import '../ui/figure.dart';
 import '../ui/kit.dart';
 import 'health.dart';
 import 'onboarding.dart';
@@ -66,70 +67,80 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
               : null,
           body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Text(_todayLabel(), style: TextStyle(fontSize: 18, color: Palette.of(context).muted)),
+            const SizedBox(height: 12),
+            // 의사 확인이 필요하면 오늘의 운동 대신 병원 확인 카드
             if (blocked)
-              Card(
-                margin: const EdgeInsets.only(bottom: 16),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Icon(Icons.local_hospital, size: 36),
-                    const SizedBox(width: 12),
-                    Expanded(child: Text('운동을 시작하기 전에 의사 선생님 확인이 필요해요. 아래 버튼을 누르면 이유와 방법을 알려 드려요.',
-                        style: Theme.of(context).textTheme.titleMedium)),
-                  ]),
-                ),
+              const ToneCard(
+                tone: 'danger',
+                icon: Icons.local_hospital,
+                title: '병원 확인이 먼저예요',
+                subtitle: '운동을 시작하기 전에 의사 선생님 확인이 필요해요. 아래 버튼을 누르면 이유와 방법을 알려 드려요.',
+              )
+            else
+              ToneCard(
+                icon: t['state'] == 'FEAR' ? Icons.event_seat : Icons.directions_walk,
+                label: '오늘의 운동',
+                title: '$minutes분',
+                // 운동 전 점검(5-2)은 건너뛸 수 없다. 시작 버튼 하나 뒤에 두고, 건강 앱 기록이 있으면 확인만 하게 한다.
+                subtitle: t['state'] == 'FEAR' ? '의자에 앉아서 할 수 있어요. 시작하면 먼저 몸 상태를 확인해요.' : '시작하면 먼저 몸 상태를 확인하고, 오늘에 맞게 골라 드려요.',
               ),
-            Text('오늘 할 운동', style: Theme.of(context).textTheme.titleLarge),
-            Text('$minutes분', style: const TextStyle(fontSize: 64, fontWeight: FontWeight.w900)),
-            // 운동 전 점검(5-2)은 건너뛸 수 없다. 시작 버튼 하나 뒤에 두고, 건강 앱 혈압계 기록이 있으면 확인만 하게 한다.
-            Text(app.readBp != null
-                ? '시작하면 먼저 혈압과 몸 상태를 확인해요. 혈압계 기록이 건강 앱에 있으면 자동으로 넣어 드려요.'
-                : '시작하면 먼저 혈압과 몸 상태를 확인하고, 오늘 몸에 맞는 운동을 골라 드려요.'),
-            const SizedBox(height: 16),
-            Row(children: [
-              const Icon(Icons.local_fire_department, size: 32),
-              const SizedBox(width: 8),
-              Expanded(child: Text('${rewards['streak']}일째 이어가는 중 · 이번 주 도장 ${rewards['weekly_stamps']}개')),
-            ]),
-            if (app.watch != null) _WatchRow(app: app),
+            const SectionTitle('이번 주 도장'),
+            StampRow(filled: (rewards['weekly_stamps'] as num).toInt(), slots: 3),
+            const SizedBox(height: 8),
+            Text(
+              [
+                if ((rewards['streak'] as num) > 0) '${rewards['streak']}일째 이어가는 중',
+                if (app.goal != null) '"${app.goal}"에 한 걸음씩',
+                if ((rewards['streak'] as num) == 0 && app.goal == null) '오늘 하면 첫 도장이에요',
+              ].join(' · '),
+              style: TextStyle(fontSize: 18, color: Palette.of(context).muted),
+            ),
             if (t['has_new_cheer'] == true)
-              const Padding(
-                padding: EdgeInsets.only(top: 12),
-                child: Row(children: [Icon(Icons.favorite, size: 32), SizedBox(width: 8), Expanded(child: Text('가족이 응원을 보냈어요. 운동이 끝나면 들려 드릴게요.'))]),
-              ),
+              const NoteRow(Icons.favorite, '가족이 응원을 보냈어요. 운동이 끝나면 들려 드릴게요.'),
             for (final p in prompts)
-              if (_prompts[p] != null && p != 'play_guardian_cheer')
-                Padding(padding: const EdgeInsets.only(top: 12), child: Text(_prompts[p]!)),
-            if (t['ask_time_change'] == true)
-              const Padding(padding: EdgeInsets.only(top: 12), child: Text('알림 시간이 불편하시면 보호자 연결 화면에서 바꿀 수 있어요.')),
-            const SizedBox(height: 24),
-            Wrap(spacing: 8, runSpacing: 8, children: [
-              TextButton.icon(
-                onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WeekScreen())),
-                icon: const Icon(Icons.calendar_month, size: 28),
-                label: const Text('이번 주 기록'),
-              ),
-              TextButton.icon(
-                onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HealthInfoScreen())),
-                icon: const Icon(Icons.medical_information, size: 28),
-                label: const Text('내 건강 정보'),
-              ),
-              TextButton.icon(
-                onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GuardianScreen())),
-                icon: const Icon(Icons.family_restroom, size: 28),
-                label: const Text('보호자 연결'),
-              ),
-              TextButton.icon(
-                onPressed: app.cycleTextScale,
-                icon: const Icon(Icons.format_size, size: 28),
-                label: Text('글자 크기 ${((app.textScale - 1) / 0.25).round() + 1}단계'),
-              ),
+              if (_prompts[p] != null && p != 'play_guardian_cheer') NoteRow(Icons.chat_bubble_outline, _prompts[p]!),
+            if (t['ask_time_change'] == true) const NoteRow(Icons.schedule, '알림 시간이 불편하시면 보호자 연결 화면에서 바꿀 수 있어요.'),
+            if (app.watch != null) _WatchRow(app: app),
+            const SizedBox(height: 20),
+            TwoColumn(children: [
+              _HomeLink(icon: Icons.calendar_month, label: '이번 주 기록', onTap: () => _push(context, const WeekScreen())),
+              _HomeLink(icon: Icons.family_restroom, label: '보호자 연결', onTap: () => _push(context, const GuardianScreen())),
+              _HomeLink(icon: Icons.medical_information, label: '내 건강 정보', onTap: () => _push(context, const HealthInfoScreen())),
+              _HomeLink(
+                  icon: Icons.format_size, label: '글자 크기 ${((app.textScale - 1) / 0.25).round() + 1}단계', onTap: app.cycleTextScale),
             ]),
           ]),
         );
       },
     );
   }
+}
+
+void _push(BuildContext context, Widget screen) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+
+String _todayLabel() {
+  final d = DateTime.now();
+  const days = ['월', '화', '수', '목', '금', '토', '일'];
+  return '${d.month}월 ${d.day}일 ${days[d.weekday - 1]}요일';
+}
+
+class _HomeLink extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _HomeLink({required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => OutlinedButton(
+        onPressed: onTap,
+        style: OutlinedButton.styleFrom(alignment: Alignment.center, padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8)),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 32, color: Palette.of(context).brand),
+          const SizedBox(height: 4),
+          Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18)),
+        ]),
+      );
 }
 
 // ---------------- 5. 운동 전 점검(혈압·증상) ----------------
@@ -140,7 +151,8 @@ class PrecheckScreen extends StatefulWidget {
 }
 
 class _PrecheckScreenState extends State<PrecheckScreen> {
-  int _step = 0; // 0 숫자, 1 가슴·숨, 2 어지러움, 3 피로, 4 오늘 컨디션
+  // 한 화면에서: 혈압·맥박(건강 앱으로 채움) + 지금 증상·오늘 컨디션 한꺼번에 고르기 + 응급 증상은 바로.
+  bool _editing = true; // 숫자 칸 보이기. 건강 앱으로 채웠으면 큰 숫자 칸으로 보이고 '숫자 고치기'로 연다.
   final _sbp = TextEditingController(), _dbp = TextEditingController(), _hr = TextEditingController();
   final Set<String> _symptoms = {}, _conditions = {};
   bool _busy = false;
@@ -173,6 +185,7 @@ class _PrecheckScreenState extends State<PrecheckScreen> {
         _sbp.text = '${r.systolic}';
         _dbp.text = '${r.diastolic}';
         _bpSource = r.source;
+        _editing = false;
         // 맥박: 혈압과 같이 잰 값, 없으면 워치 맥박
         final pulse = r.pulse ?? v.watchPulse;
         if (pulse != null) {
@@ -188,21 +201,39 @@ class _PrecheckScreenState extends State<PrecheckScreen> {
     });
   }
 
-  static const _conditionLabels = {
-    'fever': '열이 나거나 감기·설사가 있어요',
-    'poor_sleep': '어젯밤 잠을 잘 못 잤어요',
-    'missed_medication': '오늘 먹을 약을 아직 안 먹었어요',
-    'rested_3plus_days': '3일 넘게 운동을 쉬었어요',
-  };
+  // 증상(s:)과 오늘 컨디션(c:)을 한 목록으로. 코드는 안전 규칙 precheck 의 증상·컨디션 이름.
+  static const _chips = [
+    ('숨이 많이 차요', 's:shortness_of_breath'),
+    ('어지러워요', 's:dizziness'),
+    ('조금 피곤해요', 's:mild_fatigue'),
+    ('아주 많이 피곤해요', 's:severe_unusual_fatigue'),
+    ('열·감기·설사가 있어요', 'c:fever'),
+    ('어젯밤 잠을 못 잤어요', 'c:poor_sleep'),
+    ('오늘 약을 아직 안 먹었어요', 'c:missed_medication'),
+    ('3일 넘게 운동을 쉬었어요', 'c:rested_3plus_days'),
+  ];
 
-  void _answer(String? symptom) {
-    if (symptom != null) _symptoms.add(symptom);
-    // 가슴 통증은 판정을 기다리지 않고 바로 결과(119)로
-    if (symptom == 'chest_pain') {
-      _submit();
+  bool _picked(String key) => key.startsWith('s:') ? _symptoms.contains(key.substring(2)) : _conditions.contains(key.substring(2));
+
+  void _toggle(String key) => setState(() {
+        final set = key.startsWith('s:') ? _symptoms : _conditions;
+        final code = key.substring(2);
+        set.contains(code) ? set.remove(code) : set.add(code);
+      });
+
+  /// 응급 증상은 숫자를 기다리지 않고 바로 판정(119 안내).
+  void _emergency(String symptom) {
+    _symptoms.add(symptom);
+    _submit();
+  }
+
+  void _check() {
+    if (_sbp.text.isEmpty || _dbp.text.isEmpty || _hr.text.isEmpty) {
+      setState(() => _editing = true);
+      showError(context, '혈압 두 숫자와 맥박을 모두 넣어 주세요. 의자에 앉아 5분 쉬고 재 주세요.');
       return;
     }
-    setState(() => _step++);
+    _submit();
   }
 
   Future<void> _submit() async {
@@ -256,71 +287,77 @@ class _PrecheckScreenState extends State<PrecheckScreen> {
 
   @override
   Widget build(BuildContext context) {
-    switch (_step) {
-      case 0:
-        return SeniorScaffold(
-          title: '먼저 몸 상태를 확인해요',
-          primaryLabel: '다음',
-          onPrimary: () {
-            if (_sbp.text.isEmpty || _dbp.text.isEmpty || _hr.text.isEmpty) {
-              showError(context, '세 숫자를 모두 넣어 주세요. 의자에 앉아 5분 쉬고 팔에 감는 혈압계로 재 주세요.');
-              return;
-            }
-            setState(() => _step = 1);
-          },
-          body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Text(_vitals?.fill != null ? '숫자가 맞으면 다음을 누르세요. 다르면 고쳐 주세요.' : '의자에 앉아 5분 쉰 뒤, 혈압을 재 주세요. 워치로 재도 괜찮아요.'),
-            if (_loadingVitals) const Padding(padding: EdgeInsets.only(top: 12), child: Text('건강 앱 기록을 확인하는 중이에요')),
-            if (_vitals != null) _VitalsNotes(_vitals!),
-            const SizedBox(height: 16),
-            BigNumberField(label: '높은 쪽 숫자(수축기)', unit: 'mmHg', controller: _sbp),
-            BigNumberField(label: '낮은 쪽 숫자(이완기)', unit: 'mmHg', controller: _dbp),
-            BigNumberField(label: '맥박', unit: '회/분', controller: _hr),
+    final p = Palette.of(context);
+    final none = _symptoms.isEmpty && _conditions.isEmpty;
+    return SeniorScaffold(
+      title: '몸 상태 확인',
+      progress: 0.5,
+      primaryLabel: _busy ? '확인하는 중' : (none ? '없어요, 괜찮아요' : '이대로 확인하기'),
+      onPrimary: _busy ? null : _check,
+      body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Text('오늘 혈압이에요', style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 12),
+        if (_loadingVitals) const NoteRow(Icons.hourglass_empty, '건강 앱 기록을 확인하는 중이에요'),
+        if (!_editing) ...[
+          Row(children: [
+            StatTile(label: '혈압', value: _sbp.text, unit: '/${_dbp.text}', flex: 2),
+            const SizedBox(width: 10),
+            StatTile(label: '맥박', value: _hr.text.isEmpty ? '-' : _hr.text),
           ]),
-        );
-      case 1:
-        return _question('지금 가슴이 아프거나 숨이 많이 차세요?',
-            [('아니요, 괜찮아요', null), ('숨이 많이 차요', 'shortness_of_breath'), ('가슴이 아프거나 조여요', 'chest_pain')]);
-      case 2:
-        return _question('어지럽거나 쓰러질 것 같으세요?', [('아니요', null), ('네, 어지러워요', 'dizziness')]);
-      case 3:
-        return _question('평소와 다르게 피곤하세요?',
-            [('아니요', null), ('조금 피곤해요', 'mild_fatigue'), ('아주 많이 피곤해요', 'severe_unusual_fatigue')]);
-      default:
-        return SeniorScaffold(
-          title: '오늘 이런 일이 있으세요?',
-          primaryLabel: _busy ? '확인하는 중' : '결과 보기',
-          onPrimary: _busy ? null : _submit,
-          body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            const Text('해당하는 것만 눌러 주세요. 없으면 바로 결과 보기를 누르세요.'),
-            const SizedBox(height: 12),
-            for (final e in _conditionLabels.entries)
+          if (_vitals != null) _VitalsNotes(_vitals!),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () => setState(() => _editing = true),
+              icon: const Icon(Icons.edit, size: 26),
+              label: const Text('숫자 고치기'),
+            ),
+          ),
+        ] else ...[
+          Text(_vitals?.fill != null ? '숫자가 맞는지 보고, 다르면 고쳐 주세요.' : '의자에 앉아 5분 쉰 뒤, 혈압을 재 주세요. 워치로 재도 괜찮아요.',
+              style: TextStyle(color: p.muted)),
+          if (_vitals != null) _VitalsNotes(_vitals!),
+          const SizedBox(height: 14),
+          BigNumberField(label: '높은 쪽 숫자(수축기)', unit: 'mmHg', controller: _sbp),
+          BigNumberField(label: '낮은 쪽 숫자(이완기)', unit: 'mmHg', controller: _dbp),
+          BigNumberField(label: '맥박', unit: '회/분', controller: _hr),
+        ],
+        const SectionTitle('지금 이런 게 있으세요?'),
+        Text('있는 것만 눌러 주세요. 없으면 아래 "없어요, 괜찮아요"를 누르세요.', style: TextStyle(color: p.muted)),
+        const SizedBox(height: 12),
+        TwoColumn(children: [
+          for (final (label, key) in _chips) ChoiceChipTile(label: label, on: _picked(key), onTap: () => _toggle(key)),
+        ]),
+        const SizedBox(height: 12),
+        // 응급 증상(5-2): 판정을 기다리지 않고 바로 119 안내
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(color: p.dangerTint, borderRadius: BorderRadius.circular(18)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Row(children: [
+              Icon(Icons.emergency, color: p.onDangerTint, size: 28),
+              const SizedBox(width: 8),
+              Expanded(child: Text('이런 게 있으면 바로 눌러 주세요', style: TextStyle(color: p.onDangerTint, fontWeight: FontWeight.w800))),
+            ]),
+            const SizedBox(height: 10),
+            for (final (label, code) in const [('가슴이 아프거나 조여요', 'chest_pain'), ('한쪽 팔다리에 힘이 빠지거나 말이 어눌해요', 'one_side_weakness')])
               Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: OutlinedButton.icon(
-                  onPressed: () => setState(() => _conditions.contains(e.key) ? _conditions.remove(e.key) : _conditions.add(e.key)),
-                  icon: Icon(_conditions.contains(e.key) ? Icons.check_box : Icons.check_box_outline_blank, size: 32),
-                  label: Align(alignment: Alignment.centerLeft, child: Text(e.value)),
+                padding: const EdgeInsets.only(bottom: 8),
+                child: OutlinedButton(
+                  onPressed: _busy ? null : () => _emergency(code),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: p.danger,
+                    side: BorderSide(color: p.danger, width: 2),
+                    alignment: Alignment.center,
+                  ),
+                  child: Text(label, textAlign: TextAlign.center),
                 ),
               ),
           ]),
-        );
-    }
+        ),
+      ]),
+    );
   }
-
-  Widget _question(String q, List<(String, String?)> answers) => SeniorScaffold(
-        title: '몸 상태 확인',
-        body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text(q, style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 24),
-          BigChoices(choices: [for (final (l, v) in answers) (l, v ?? '')], onPick: (v) => _answer(v == '' ? null : v as String)),
-          const SizedBox(height: 12),
-          TextButton(
-            onPressed: () => _answer('one_side_weakness'),
-            child: const Text('한쪽 팔다리에 힘이 빠지거나 말이 어눌해요'),
-          ),
-        ]),
-      );
 }
 
 /// 건강 앱에서 가져온 혈압 안내: 채운 기록의 출처·시각, 오래된 기록, 워치 혈압(참고용).
@@ -328,14 +365,7 @@ class _VitalsNotes extends StatelessWidget {
   final VitalsSnapshot v;
   const _VitalsNotes(this.v);
 
-  Widget _note(IconData icon, String text, {bool strong = false}) => Padding(
-        padding: const EdgeInsets.only(top: 12),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Icon(icon, size: 32),
-          const SizedBox(width: 10),
-          Expanded(child: Text(text, style: strong ? const TextStyle(fontWeight: FontWeight.w800) : null)),
-        ]),
-      );
+  Widget _note(IconData icon, String text) => NoteRow(icon, text);
 
   @override
   Widget build(BuildContext context) {
@@ -386,16 +416,58 @@ class LightResultScreen extends StatelessWidget {
       showBack: false,
       primaryLabel: label,
       onPrimary: action,
-      primaryColor: outcome == 'EMERGENCY' ? const Color(0xFFB71C1C) : null,
+      primaryColor: outcome == 'EMERGENCY' ? Palette.of(context).danger : null,
       secondaryLabel: canExercise ? '더 쉬운 걸로 (${plan!['easier']['minutes']}분)' : null,
       onSecondary: canExercise ? () => start(easier: true) : null,
       body: SpeakOnce(text: message, child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         LightBadge(outcome: outcome),
         const SizedBox(height: 20),
-        if (message != null) Text(message, style: const TextStyle(fontSize: 24)),
-        if (outcome == 'RED') const Text('\n재 주신 것만으로도 오늘 도장을 받으셨어요.'),
-        if (offline) const Text('\n인터넷에 연결되면 운동을 시작할 수 있어요.'),
+        if (message != null) Text(message, style: const TextStyle(fontSize: 24, height: 1.4)),
+        if (canExercise) _PlanPreview(activityId: plan!['activity_id'] as String?, minutes: plan['minutes'] as int),
+        if (outcome == 'RED') const NoteRow(Icons.verified, '재 주신 것만으로도 오늘 도장을 받으셨어요.'),
+        if (offline) const NoteRow(Icons.wifi_off, '인터넷에 연결되면 운동을 시작할 수 있어요.'),
       ])),
+    );
+  }
+}
+
+/// 오늘 할 운동 미리 보기: 이름, 시간, 첫 동작 그림.
+class _PlanPreview extends StatelessWidget {
+  final String? activityId;
+  final int minutes;
+  const _PlanPreview({required this.activityId, required this.minutes});
+
+  @override
+  Widget build(BuildContext context) {
+    final lib = AppScope.of(context).exercises;
+    final name = activityId == null ? null : lib?.activityNames[activityId];
+    final move = activityId == null ? null : lib?.firstMainMove(activityId!);
+    if (name == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 18),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(children: [
+            if (move != null)
+              Container(
+                width: 96,
+                height: 120,
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(color: Palette.of(context).well, borderRadius: BorderRadius.circular(16)),
+                child: MoveFigure(poseNames: move.poses, tempoSeconds: move.tempoSeconds, label: move.name),
+              ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('오늘의 운동', style: TextStyle(fontSize: 17, color: Palette.of(context).muted)),
+                Text(name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, height: 1.3)),
+                Text('$minutes분 · 몸 풀기부터 천천히', style: TextStyle(fontSize: 18, color: Palette.of(context).muted)),
+              ]),
+            ),
+          ]),
+        ),
+      ),
     );
   }
 }
@@ -416,18 +488,15 @@ class CompleteScreen extends StatelessWidget {
       primaryLabel: '확인',
       onPrimary: () => goHome(context),
       body: SpeakOnce(text: spoken.join(' '), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        const Icon(Icons.verified, size: 120),
+        Icon(Icons.verified, size: 120, color: Palette.of(context).brand),
         Text(result['message'] as String, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800), textAlign: TextAlign.center),
-        const SizedBox(height: 16),
-        Text('오늘 도장 ✓  ·  ${rewards['streak']}일째', textAlign: TextAlign.center),
+        const SectionTitle('이번 주 도장'),
+        StampRow(filled: ((rewards['weekly_stamps'] as num?) ?? 1).toInt(), slots: 3),
+        const SizedBox(height: 8),
+        Text('오늘 도장 ✓  ·  ${rewards['streak']}일째', textAlign: TextAlign.center, style: TextStyle(color: Palette.of(context).muted)),
         if (cheer != null) ...[
           const SizedBox(height: 24),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Text('${cheer['from']}님의 응원\n${cheer['text'] ?? '음성 응원이 왔어요'}', style: const TextStyle(fontSize: 22)),
-            ),
-          ),
+          ToneCard(icon: Icons.favorite, label: '${cheer['from']}님의 응원', title: (cheer['text'] as String?) ?? '음성 응원이 왔어요'),
         ],
       ])),
     );
@@ -448,16 +517,24 @@ class WeekScreen extends StatelessWidget {
           return SeniorScaffold(
             title: '이번 주 기록',
             body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Text('${snap.data!['streak']}일째 이어가는 중', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 16),
+              ToneCard(
+                icon: Icons.local_fire_department,
+                title: '${snap.data!['streak']}일째 이어가는 중',
+                subtitle: '이번 주 도장 ${days.where((d) => d['stamp'] == true).length}개',
+              ),
+              const SizedBox(height: 12),
               for (final d in days)
-                ListTile(
-                  minTileHeight: 64,
-                  leading: Icon(d['stamp'] == true ? Icons.check_circle : Icons.radio_button_unchecked, size: 40),
-                  title: Text('${_days[DateTime.parse(d['date'] as String).weekday - 1]}요일 '
-                      '${d['stamp'] == true ? '도장 받음' : '쉼'}${(d['minutes'] as num) > 0 ? ' · ${d['minutes']}분' : ''}'),
+                Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    minTileHeight: 64,
+                    leading: Icon(d['stamp'] == true ? Icons.check_circle : Icons.radio_button_unchecked,
+                        size: 36, color: d['stamp'] == true ? Palette.of(context).brand : Palette.of(context).muted),
+                    title: Text('${_days[DateTime.parse(d['date'] as String).weekday - 1]}요일 '
+                        '${d['stamp'] == true ? '도장 받음' : '쉼'}${(d['minutes'] as num) > 0 ? ' · ${d['minutes']}분' : ''}'),
+                  ),
                 ),
-              const Text('\n도장은 운동을 시작하거나, 혈압을 재거나, 쉬라는 날 쉬면 받아요.'),
+              const NoteRow(Icons.info_outline, '도장은 운동을 시작하거나, 혈압을 재거나, 쉬라는 날 쉬면 받아요.'),
             ]),
           );
         },
@@ -546,13 +623,13 @@ class _WatchRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final on = app.watchConnected;
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.only(top: 16),
       child: Card(
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Row(children: [
-              Icon(on ? Icons.watch : Icons.watch_off, size: 36),
+              Icon(on ? Icons.watch : Icons.watch_off, size: 36, color: on ? Palette.of(context).brand : Palette.of(context).muted),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -568,6 +645,7 @@ class _WatchRow extends StatelessWidget {
             const SizedBox(height: 8),
             OutlinedButton(
               onPressed: on ? app.disconnectWatch : app.connectWatch,
+              style: OutlinedButton.styleFrom(alignment: Alignment.center, minimumSize: const Size.fromHeight(56)),
               child: Text(on ? '워치 연결 끊기' : '워치 연결하기'),
             ),
           ]),

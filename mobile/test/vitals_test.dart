@@ -19,12 +19,13 @@ Future<void> openCheck(WidgetTester tester) async {
 }
 
 Future<void> answerRest(WidgetTester tester) async {
-  await tapText(tester, '다음');
-  await tapText(tester, '아니요, 괜찮아요');
-  await tapText(tester, '아니요');
-  await tapText(tester, '아니요');
-  await tapText(tester, '결과 보기');
+  await tapText(tester, '없어요, 괜찮아요');
   await tester.pump(const Duration(milliseconds: 600));
+}
+
+/// 건강 앱으로 채웠으면 큰 숫자 칸으로 보이므로, 칸 값을 보려면 '숫자 고치기'를 연다.
+Future<void> openFields(WidgetTester tester) async {
+  if (find.text('숫자 고치기').evaluate().isNotEmpty) await tapText(tester, '숫자 고치기');
 }
 
 String field(WidgetTester tester, String label) =>
@@ -80,6 +81,8 @@ void main() {
     h.state.readBp = (from, to) async => [arm(128, 82, const Duration(minutes: 5), pulse: 71), watch(150, 95, const Duration(hours: 1))];
     await h.start(tester);
     await openCheck(tester);
+    expect(find.text('숫자 고치기'), findsOneWidget); // 채운 값은 큰 숫자 칸으로
+    await openFields(tester);
     expect(field(tester, '높은 쪽 숫자(수축기)'), '128');
     expect(field(tester, '낮은 쪽 숫자(이완기)'), '82');
     expect(field(tester, '맥박'), '71');
@@ -98,6 +101,7 @@ void main() {
     await h.start(tester);
     await openCheck(tester);
     expect(find.text('맥박은 직접 넣어 주세요'), findsOneWidget);
+    await openFields(tester);
     await enter(tester, '높은 쪽 숫자(수축기)', '132');
     await enter(tester, '맥박', '70');
     await answerRest(tester);
@@ -113,6 +117,7 @@ void main() {
     h.state.readHr = (from, to) async => [HrSample(72, now.subtract(const Duration(minutes: 5)))];
     await h.start(tester);
     await openCheck(tester);
+    await openFields(tester);
     expect(field(tester, '높은 쪽 숫자(수축기)'), '126');
     expect(field(tester, '맥박'), '72');
     expect(find.textContaining('워치에서 잰 혈압을 넣어 두었어요 (20분 전)'), findsOneWidget);

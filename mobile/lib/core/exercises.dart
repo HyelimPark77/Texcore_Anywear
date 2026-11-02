@@ -61,7 +61,16 @@ class ExerciseLibrary {
   final Map<String, Move> moves;
   final Map<String, Map<Phase, List<String>>> activities;
 
-  ExerciseLibrary(this.version, this.cueEverySeconds, this.moves, this.activities);
+  /// 운동 이름(유도 엔진 activities 의 name 과 같다).
+  final Map<String, String> activityNames;
+
+  ExerciseLibrary(this.version, this.cueEverySeconds, this.moves, this.activities, this.activityNames);
+
+  /// 그 운동의 본 운동 첫 동작(결과 화면 미리 보기용).
+  Move? firstMainMove(String activityId) {
+    final ids = activities[activityId]?[Phase.main];
+    return ids == null || ids.isEmpty ? null : moves[ids.first];
+  }
 
   factory ExerciseLibrary.parse(String source) {
     final j = jsonDecode(source) as Map<String, dynamic>;
@@ -74,7 +83,10 @@ class ExerciseLibrary {
           for (final p in Phase.values) p: List<String>.from((e.value as Map<String, dynamic>)[p.name] as List),
         },
     };
-    return ExerciseLibrary(j['version'] as String, j['cue_every_seconds'] as int, moves, activities);
+    final names = {
+      for (final e in (j['activities'] as Map<String, dynamic>).entries) e.key: (e.value as Map<String, dynamic>)['name'] as String,
+    };
+    return ExerciseLibrary(j['version'] as String, j['cue_every_seconds'] as int, moves, activities, names);
   }
 
   /// 총 [totalSeconds]를 동작 순서로 나눈다.

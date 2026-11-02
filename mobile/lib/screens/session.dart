@@ -240,12 +240,23 @@ class _SessionScreenState extends State<SessionScreen> {
     }
   }
 
+  /// 어르신이 스스로 쉬기. 안전 엔진에도 쉬는 중으로 알려(무응답 감시는 계속) 다시 하기로 이어 간다.
+  void _userPause() => setState(() {
+        _paused = true;
+        _pauseCode = 'USER_PAUSE';
+        _monitor!.paused = true;
+        _handle(_monitor!.onInteraction(_t));
+        _sayAlert('잠깐 쉬어요. 괜찮아지면 다시 하기를 누르세요.');
+      });
+
   @override
   Widget build(BuildContext context) {
     if (_session == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    final p = Palette.of(context);
     final left = (_total - _elapsed).clamp(0, _total);
     final mm = (left ~/ 60).toString(), ss = (left % 60).toString().padLeft(2, '0');
-    final stopColor = const Color(0xFFC62828);
+    final yellow = _session!['light'] == 'YELLOW';
+    final seg = _plan.isEmpty ? null : _plan[_seg.clamp(0, _plan.length - 1)];
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       excludeFromSemantics: true, // 화면 읽기 사용자는 아래 버튼으로 응답
@@ -253,8 +264,9 @@ class _SessionScreenState extends State<SessionScreen> {
       child: SeniorScaffold(
         title: _session!['activity']['name'] as String,
         showBack: false,
+        sideBySide: true,
         primaryLabel: _paused ? '다시 하기' : '그만',
-        primaryColor: _paused ? null : stopColor,
+        primaryColor: _paused ? null : p.danger,
         onPrimary: _paused
             ? () => setState(() {
                   _paused = false;
@@ -262,45 +274,88 @@ class _SessionScreenState extends State<SessionScreen> {
                   _handle(_monitor!.resume(_t));
                 })
             : () => _handle(_monitor!.onUserStop(_t)),
-        secondaryLabel: _paused ? '그만할래요' : null,
-        onSecondary: _paused ? () => _handle(_monitor!.onUserStop(_t)) : null,
+        secondaryLabel: _paused ? '그만할래요' : '잠깐 쉬기',
+        onSecondary: _paused ? () => _handle(_monitor!.onUserStop(_t)) : _userPause,
         body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text(_paused ? '잠깐 쉬는 중' : '남은 시간', style: Theme.of(context).textTheme.titleLarge),
-          Semantics(
-            label: '남은 시간 $mm분 $ss초',
-            child: Text('$mm:$ss', style: TextStyle(fontSize: _plan.isEmpty ? 88 : 56, fontWeight: FontWeight.w900)),
-          ),
-          if (_plan.isNotEmpty && !_paused) _MoveCard(plan: _plan, index: _seg.clamp(0, _plan.length - 1), elapsed: _elapsed),
-          if (_paused) const Text('의자에 앉아 숨을 고르세요. 괜찮아지면 다시 하기를 누르세요.'),
-          if (_paused && _live && (_pauseCode == 'HR_FAR_OVER_CEILING' || _pauseCode == 'HR_SUDDEN_CHANGE'))
-            const Padding(
-              padding: EdgeInsets.only(top: 12),
-              child: Text('워치 심박이 많이 높게 나왔어요. 워치는 참고용이라 멈추지 않고 잠깐 쉬게 해요. 숨이 많이 차면 그만을 누르세요.'),
+          Row(children: [
+            Expanded(
+              child: Text(seg == null ? '' : '${phaseNames[seg.phase]} · 동작 ${_seg + 1}/${_plan.length}',
+                  style: TextStyle(fontSize: 18, color: p.muted)),
             ),
-          if (_banner != null && !_paused)
-            Container(
-              margin: const EdgeInsets.only(top: 12),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: const Color(0xFFFFF3C4), borderRadius: BorderRadius.circular(12)),
-              child: Row(children: [
-                const Icon(Icons.slow_motion_video, size: 36, color: Colors.black),
-                const SizedBox(width: 12),
-                Expanded(child: Text(_banner!, style: const TextStyle(color: Colors.black, fontSize: 22))),
-              ]),
+            _LightChip(yellow: yellow),
+          ]),
+          if (seg != null) ...[
+            const SizedBox(height: 10),
+            SegmentBar(
+              weights: [for (final s in _plan) s.seconds],
+              current: _seg,
+              currentFraction: (_elapsed - seg.start) / seg.seconds,
             ),
+          ],
+          const SizedBox(height: 14),
+          if (_paused) ...[
+            ToneCard(
+              tone: 'warn',
+              icon: Icons.self_improvement,
+              title: '잠깐 쉬는 중',
+              subtitle: _live && (_pauseCode == 'HR_FAR_OVER_CEILING' || _pauseCode == 'HR_SUDDEN_CHANGE')
+                  ? '워치 심박이 많이 높게 나왔어요. 워치는 참고용이라 멈추지 않고 잠깐 쉬게 해요. 숨이 많이 차면 그만을 누르세요.'
+                  : '의자에 앉아 숨을 고르세요. 괜찮아지면 다시 하기를 누르세요.',
+            ),
+          ] else if (seg != null)
+            _MoveCard(plan: _plan, index: _seg.clamp(0, _plan.length - 1), elapsed: _elapsed)
+          else ...[
+            Text('남은 시간', style: Theme.of(context).textTheme.titleLarge),
+            Semantics(
+              label: '남은 시간 $mm분 $ss초',
+              child: Text('$mm:$ss', style: const TextStyle(fontSize: 88, fontWeight: FontWeight.w900)),
+            ),
+          ],
+          if (_banner != null && !_paused) ...[
+            const SizedBox(height: 12),
+            ToneCard(tone: 'warn', icon: Icons.slow_motion_video, title: _banner!),
+          ],
           if (_live) ...[
             const SizedBox(height: 16),
             _HeartCard(connected: app.watchConnected, bpm: app.lastHr?.bpm, ceiling: _session!['hr_limits']['ceiling'] as int),
           ],
-          const SizedBox(height: 16),
-          Text('오늘은 ${_session!['light'] == 'YELLOW' ? '가볍게 하는 날' : '평소대로 하는 날'}이에요.'),
+          // 동작이 하나뿐이면(1분 세션) 이 동작 남은 시간과 같으므로 생략
+          if (seg != null && !_paused && _plan.length > 1) ...[
+            const SizedBox(height: 16),
+            Row(children: [
+              Text('남은 시간', style: TextStyle(fontSize: 18, color: p.muted)),
+              const Spacer(),
+              Semantics(
+                label: '남은 시간 $mm분 $ss초',
+                excludeSemantics: true,
+                child: Text('$mm:$ss', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800)),
+              ),
+            ]),
+          ],
         ]),
       ),
     );
   }
 }
 
-/// 지금 동작: 단계·순서, 움직이는 그림, 이름, 하는 방법, 주의, 다음 동작.
+/// 오늘 신호등: 색 + 글자(색만으로 구분하지 않음).
+class _LightChip extends StatelessWidget {
+  final bool yellow;
+  const _LightChip({required this.yellow});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Palette.of(context);
+    final (bg, fg, text) = yellow ? (p.warnTint, p.onWarnTint, '노랑 · 가볍게') : (p.brandTint, p.onBrandTint, '초록 · 평소대로');
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
+      child: Text('오늘 $text', style: TextStyle(fontSize: 16, color: fg, fontWeight: FontWeight.w700)),
+    );
+  }
+}
+
+/// 지금 동작: 움직이는 그림, 이름, 하는 방법, 주의, 이 동작 남은 시간, 다음 동작.
 class _MoveCard extends StatelessWidget {
   final List<Segment> plan;
   final int index, elapsed;
@@ -308,40 +363,45 @@ class _MoveCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = Palette.of(context);
     final seg = plan[index];
     final m = seg.move;
     final next = index + 1 < plan.length ? plan[index + 1].move.name : null;
     final left = (seg.end - elapsed).clamp(0, seg.seconds);
-    final big = Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800);
-    return Card(
-      margin: const EdgeInsets.only(top: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text('${phaseNames[seg.phase]} · 동작 ${index + 1}/${plan.length} · $left초 남음'),
-          const SizedBox(height: 8),
-          SizedBox(height: 200, child: MoveFigure(poseNames: m.poses, tempoSeconds: m.tempoSeconds, label: m.name)),
-          const SizedBox(height: 8),
-          Text(m.name, style: big),
-          const SizedBox(height: 8),
-          for (final (i, step) in m.how.indexed)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Text('${i + 1}. $step'),
-            ),
-          const SizedBox(height: 8),
-          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Icon(Icons.info_outline, size: 28),
-            const SizedBox(width: 8),
-            Expanded(child: Text(m.caution)),
-          ]),
-          if (next != null) ...[
-            const Divider(height: 24),
-            Text('다음: $next'),
-          ],
-        ]),
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Container(
+        height: 210,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(color: p.well, borderRadius: BorderRadius.circular(22)),
+        child: MoveFigure(poseNames: m.poses, tempoSeconds: m.tempoSeconds, label: m.name),
       ),
-    );
+      const SizedBox(height: 14),
+      Text(m.name, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, height: 1.25)),
+      const SizedBox(height: 8),
+      for (final (i, step) in m.how.indexed)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Text('${i + 1}. $step', style: TextStyle(fontSize: i == 0 ? 22 : 19, fontWeight: i == 0 ? FontWeight.w700 : null)),
+        ),
+      NoteRow(Icons.info_outline, m.caution),
+      const SizedBox(height: 12),
+      Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+        Semantics(
+          label: '이 동작 $left초 남음',
+          excludeSemantics: true,
+          child: Text('${left ~/ 60}:${(left % 60).toString().padLeft(2, '0')}',
+              style: const TextStyle(fontSize: 52, fontWeight: FontWeight.w900, height: 1)),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Padding(padding: const EdgeInsets.only(bottom: 6), child: Text('이 동작 남은 시간', style: TextStyle(fontSize: 17, color: p.muted))),
+        ),
+      ]),
+      if (next != null) ...[
+        const SizedBox(height: 8),
+        Text('다음: $next', style: TextStyle(fontSize: 19, color: p.muted)),
+      ],
+    ]);
   }
 }
 
