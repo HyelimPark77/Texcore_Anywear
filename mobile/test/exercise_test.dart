@@ -76,4 +76,28 @@ void main() {
     await seconds(tester, 1);
     expect(h.speaker.said.last, '천천히 들이마시고');
   });
+
+  testWidgets('몸 상태 확인은 한 화면: 증상·컨디션을 한꺼번에 고르고 한 번에 보낸다', (tester) async {
+    final h = Harness();
+    await h.start(tester);
+    await toResult(tester, pick: ['어지러워요', '어젯밤 잠을 못 잤어요']);
+    final body = h.server.bodies('POST /me/prechecks').single;
+    expect(body['symptoms'], ['dizziness']);
+    expect(body['conditions'], ['poor_sleep']);
+  });
+
+  testWidgets('운동 중 잠깐 쉬기 → 다시 하기', (tester) async {
+    final h = Harness();
+    await h.start(tester);
+    await toResult(tester);
+    await tapText(tester, '3분 시작하기');
+    await seconds(tester, 5);
+    await tapText(tester, '잠깐 쉬기');
+    expect(find.text('잠깐 쉬는 중'), findsOneWidget);
+    await seconds(tester, 10);
+    expect(find.text('잠깐 쉬는 중'), findsOneWidget); // 쉬는 동안 시간이 흐르지 않음
+    await tapText(tester, '다시 하기');
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.textContaining('몸 풀기 · 동작 1/'), findsOneWidget);
+  });
 }

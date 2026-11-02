@@ -166,13 +166,13 @@
     }
   },
   "activities": {
-    "chair_march":       {"warmup": ["seated_breath", "ankle_pump"],   "main": ["seated_march", "seated_march_arms", "seated_punch"],               "cooldown": ["seated_breath"]},
-    "home_walk":         {"warmup": ["ankle_pump", "seated_march"],    "main": ["home_walk_easy", "home_walk_brisk"],                               "cooldown": ["seated_breath"]},
-    "outdoor_walk":      {"warmup": ["ankle_pump", "seated_march"],    "main": ["outdoor_walk_easy", "outdoor_walk_brisk"],                         "cooldown": ["seated_breath"]},
-    "chair_strength":    {"warmup": ["shoulder_roll", "ankle_pump"],   "main": ["seated_knee_extend", "seated_arm_press", "seated_squeeze"],        "cooldown": ["seated_breath"]},
-    "sit_to_stand":      {"warmup": ["shoulder_roll", "seated_march"], "main": ["sit_to_stand", "seated_knee_extend", "march_standing_hold"],        "cooldown": ["seated_breath"]},
-    "chair_balance":     {"warmup": ["seated_breath", "ankle_pump"],   "main": ["seated_lean", "seated_leg_hold", "seated_reach"],                  "cooldown": ["seated_breath"]},
-    "supported_balance": {"warmup": ["ankle_pump", "seated_march"],    "main": ["heel_raise_hold", "weight_shift_hold", "one_leg_hold"],            "cooldown": ["seated_breath"]},
-    "free_balance":      {"warmup": ["ankle_pump", "seated_march"],    "main": ["weight_shift_free", "tandem_stand", "heel_raise_hold"],            "cooldown": ["seated_breath"]}
+    "chair_march":       {"name": "의자에 앉아 제자리 걷기", "warmup": ["seated_breath", "ankle_pump"],   "main": ["seated_march", "seated_march_arms", "seated_punch"],               "cooldown": ["seated_breath"]},
+    "home_walk":         {"name": "집 안 걷기", "warmup": ["ankle_pump", "seated_march"],    "main": ["home_walk_easy", "home_walk_brisk"],                               "cooldown": ["seated_breath"]},
+    "outdoor_walk":      {"name": "동네 걷기", "warmup": ["ankle_pump", "seated_march"],    "main": ["outdoor_walk_easy", "outdoor_walk_brisk"],                         "cooldown": ["seated_breath"]},
+    "chair_strength":    {"name": "의자에 앉아 힘 기르기", "warmup": ["shoulder_roll", "ankle_pump"],   "main": ["seated_knee_extend", "seated_arm_press", "seated_squeeze"],        "cooldown": ["seated_breath"]},
+    "sit_to_stand":      {"name": "의자에서 일어났다 앉기", "warmup": ["shoulder_roll", "seated_march"], "main": ["sit_to_stand", "seated_knee_extend", "march_standing_hold"],        "cooldown": ["seated_breath"]},
+    "chair_balance":     {"name": "의자에 앉아 몸 균형 잡기", "warmup": ["seated_breath", "ankle_pump"],   "main": ["seated_lean", "seated_leg_hold", "seated_reach"],                  "cooldown": ["seated_breath"]},
+    "supported_balance": {"name": "의자 잡고 서서 균형 잡기", "warmup": ["ankle_pump", "seated_march"],    "main": ["heel_raise_hold", "weight_shift_hold", "one_leg_hold"],            "cooldown": ["seated_breath"]},
+    "free_balance":      {"name": "혼자 서서 균형 잡기", "warmup": ["ankle_pump", "seated_march"],    "main": ["weight_shift_free", "tandem_stand", "heel_raise_hold"],            "cooldown": ["seated_breath"]}
   }
 }

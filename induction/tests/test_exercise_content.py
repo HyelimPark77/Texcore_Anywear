@@ -28,6 +28,10 @@ def test_every_engine_activity_has_content():
     assert {a["id"] for a in CFG.rules["activities"]} == set(CONTENT["activities"])
 
 
+def test_activity_names_match_engine():
+    assert {a["id"]: a["name"] for a in CFG.rules["activities"]} == {k: v["name"] for k, v in CONTENT["activities"].items()}
+
+
 @pytest.mark.parametrize("activity", CFG.rules["activities"], ids=lambda a: a["id"])
 def test_activity_moves_respect_engine_limits(activity):
     """앉아서 하는 운동에 서는 동작이, 붙잡고 하는 운동에 붙잡지 않는 동작이 섞이면 안 된다(낙상 걱정·두려움 단계)."""

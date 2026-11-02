@@ -55,6 +55,12 @@ class _LoginScreenState extends State<LoginScreen> {
         primaryLabel: _codeSent ? '확인' : '인증번호 받기',
         onPrimary: _busy ? null : _next,
         body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          const ToneCard(
+            icon: Icons.directions_walk,
+            title: '운동친구',
+            subtitle: '오늘 할 수 있는 만큼, 안전하게 함께 움직여요.',
+          ),
+          const SizedBox(height: 20),
           const Text('휴대폰 번호로 시작해요. 아이디나 비밀번호는 필요 없어요.'),
           const SizedBox(height: 24),
           if (!_codeSent)
@@ -91,6 +97,7 @@ class BasicInfoScreen extends StatefulWidget {
 
 class _BasicInfoScreenState extends State<BasicInfoScreen> {
   int _step = 0; // 0 이름, 1 태어난 해, 2 건강 정보 동의, 3 질환, 4 심박 약, 5 심박조율기
+  double get _progress => (_step + 1) / (_basicSteps + parqQuestions.length);
   final _name = TextEditingController();
   final _year = TextEditingController();
   final _ceiling = TextEditingController();
@@ -149,6 +156,7 @@ class _BasicInfoScreenState extends State<BasicInfoScreen> {
       case 0:
         return SeniorScaffold(
           title: '성함을 알려 주세요',
+          progress: _progress,
           primaryLabel: '다음',
           onPrimary: _busy ? null : _primary,
           body: TextField(controller: _name, style: const TextStyle(fontSize: 32), decoration: const InputDecoration(labelText: '이름')),
@@ -156,6 +164,7 @@ class _BasicInfoScreenState extends State<BasicInfoScreen> {
       case 1:
         return SeniorScaffold(
           title: '태어난 해',
+          progress: _progress,
           primaryLabel: '다음',
           onPrimary: _busy ? null : _primary,
           body: BigNumberField(label: '예: 1952', unit: '년', controller: _year, maxDigits: 4),
@@ -163,6 +172,7 @@ class _BasicInfoScreenState extends State<BasicInfoScreen> {
       case 2:
         return SeniorScaffold(
           title: '건강 정보 사용 동의',
+          progress: _progress,
           primaryLabel: '동의해요',
           onPrimary: _busy
               ? null
@@ -183,6 +193,7 @@ class _BasicInfoScreenState extends State<BasicInfoScreen> {
       case 3:
         return SeniorScaffold(
           title: '의사에게 들은 적이 있는 것',
+          progress: _progress,
           primaryLabel: _conditions.isEmpty ? '해당 없어요' : '다음',
           onPrimary: () => setState(() => _step = 4),
           body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -202,6 +213,7 @@ class _BasicInfoScreenState extends State<BasicInfoScreen> {
       case 4:
         return SeniorScaffold(
           title: '맥박을 느리게 하는 약',
+          progress: _progress,
           body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             const Text('혈압약 중에 맥박을 느리게 하는 약(베타차단제)을 드시나요?\n모르시면 약 봉투를 보호자와 함께 확인해 주세요.'),
             const SizedBox(height: 20),
@@ -217,6 +229,7 @@ class _BasicInfoScreenState extends State<BasicInfoScreen> {
       default:
         return SeniorScaffold(
           title: '심장 박동기',
+          progress: _progress,
           primaryLabel: _device == null ? null : '다음',
           onPrimary: _busy ? null : _primary,
           body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -233,6 +246,9 @@ class _BasicInfoScreenState extends State<BasicInfoScreen> {
     }
   }
 }
+
+/// 가입 단계 수(이름·태어난 해·동의·질환·약·박동기). 몸 상태 질문과 합쳐 진행 막대를 그린다.
+const _basicSteps = 6;
 
 // ---------------- 3. 운동 전 문진 (PAR-Q+ 간소화, 자문단 검수 필요) ----------------
 const parqQuestions = [
@@ -283,6 +299,7 @@ class _ParqScreenState extends State<ParqScreen> {
   Widget build(BuildContext context) {
     return SeniorScaffold(
       title: '몸 상태 질문 ${_i + 1} / ${parqQuestions.length}',
+      progress: (_basicSteps + _i + 1) / (_basicSteps + parqQuestions.length),
       body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Text(parqQuestions[_i], style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 28),
