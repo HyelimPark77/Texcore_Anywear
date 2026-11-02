@@ -26,6 +26,17 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>NSHealthShareUsageDescription</key>
+	<string>워치(SMART-TIME PRO)가 건강 앱에 남긴 심박을 읽어 홈 화면에 보여 드려요.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>이 앱은 건강 앱에 기록을 쓰지 않아요.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>같은 와이파이에 있는 개발 서버(Mac)에 접속해요.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

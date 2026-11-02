@@ -39,6 +39,9 @@ class FakeWatch implements HeartRateSource {
   String get name => '디즈먼트 워치';
   @override
   bool get connected => _on;
+  bool isRealtime = true;
+  @override
+  bool get realtime => isRealtime;
   @override
   Stream<HrSample> get samples => _samples.stream;
   @override

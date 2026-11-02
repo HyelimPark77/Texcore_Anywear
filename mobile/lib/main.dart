@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 
 import 'core/api.dart';
 import 'core/app_state.dart';
+import 'core/health_reader.dart';
 import 'core/heart_rate.dart';
 import 'core/services.dart';
 import 'screens/daily.dart';
@@ -14,6 +16,15 @@ const apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://
 const allowDraftRules = bool.fromEnvironment('ALLOW_DRAFT_RULES');
 // PC의 watch_bridge.py. 에뮬레이터에서 PC는 10.0.2.2
 const watchBridgeUrl = String.fromEnvironment('WATCH_BRIDGE_URL', defaultValue: 'ws://10.0.2.2:8765');
+// 심박 출처: health(건강 앱 경유, 실기기) / bridge(PC 브리지, 에뮬레이터). 비우면 아이폰은 health, 그 밖은 bridge.
+const hrSource = String.fromEnvironment('HR_SOURCE');
+
+HeartRateSource watchSource() {
+  final useHealth = hrSource.isEmpty ? defaultTargetPlatform == TargetPlatform.iOS : hrSource == 'health';
+  return useHealth
+      ? HealthHeartRateSource(authorize: authorizeHealth, read: readHeartRates)
+      : BridgeHeartRateSource(watchBridgeUrl);
+}
 
 // 시연 녹화용: 접근성 트리를 켜서 자동화 스크립트가 버튼을 글자로 찾게 한다.
 const demoSemantics = bool.fromEnvironment('DEMO_SEMANTICS');
@@ -27,7 +38,7 @@ Future<void> main() async {
     dialer: PhoneDialer(),
     store: PrefsStore(),
     allowDraftRules: allowDraftRules,
-    watch: BridgeHeartRateSource(watchBridgeUrl),
+    watch: watchSource(),
   );
   await state.restore();
   if (state.loggedIn) {
