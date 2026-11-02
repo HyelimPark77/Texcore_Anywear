@@ -1,9 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
+import 'package:flutter/services.dart';
 
 import 'core/api.dart';
 import 'core/app_state.dart';
+import 'core/exercises.dart';
 import 'core/health_reader.dart';
 import 'core/heart_rate.dart';
 import 'core/services.dart';
@@ -40,6 +42,7 @@ Future<void> main() async {
     allowDraftRules: allowDraftRules,
     watch: watchSource(),
   );
+  state.exercises = ExerciseLibrary.parse(await rootBundle.loadString('assets/exercises.json'));
   await state.restore();
   if (state.loggedIn) {
     try {
