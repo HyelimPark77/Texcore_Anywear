@@ -12,6 +12,7 @@ def test_signup_then_login_same_account(w):
     h2, uid2 = w.login("01011112222")
     assert uid1 == uid2
     assert w.client.get("/me", headers=h2).json()["birth_year"] == 1952
+    assert "health" in w.client.get("/me", headers=h2).json()
 
 
 def test_wrong_code_and_lockout(w):

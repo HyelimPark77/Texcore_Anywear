@@ -249,6 +249,20 @@ Future<void> showError(BuildContext context, Object e) => showDialog(
       ),
     );
 
+/// 정말 맞는지 한 번 더 묻는다(위험하거나 실수하기 쉬운 입력에만, 3장 '확인 팝업은 꼭 필요할 때만').
+Future<bool> confirmDialog(BuildContext context, String text, {String yes = '맞아요', String no = '다시 넣을게요'}) async =>
+    await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        content: Text(text, style: const TextStyle(fontSize: Sizes.body)),
+        actions: [
+          OutlinedButton(onPressed: () => Navigator.pop(c, false), child: Text(no)),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(yes)),
+        ],
+      ),
+    ) ??
+    false;
+
 /// 화면이 처음 뜰 때 한 번만 읽어 준다(다시 그려져도 반복하지 않음).
 class SpeakOnce extends StatefulWidget {
   final String? text;
@@ -269,4 +283,24 @@ class _SpeakOnceState extends State<SpeakOnce> {
 
   @override
   Widget build(BuildContext context) => widget.child;
+}
+
+/// 눌러서 켜고 끄는 큰 체크 칸(여러 개 고르기).
+class CheckTile extends StatelessWidget {
+  final String label;
+  final bool on;
+  final VoidCallback onTap;
+  const CheckTile({super.key, required this.label, required this.on, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        selected: on,
+        button: true,
+        child: OutlinedButton.icon(
+          onPressed: onTap,
+          style: on ? OutlinedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primaryContainer) : null,
+          icon: Icon(on ? Icons.check_box : Icons.check_box_outline_blank, size: 32),
+          label: Align(alignment: Alignment.centerLeft, child: Text(label)),
+        ),
+      );
 }

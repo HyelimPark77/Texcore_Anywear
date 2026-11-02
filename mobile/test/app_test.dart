@@ -40,7 +40,8 @@ void main() {
       await tapText(tester, '아니요');
     }
     await tester.pump(const Duration(milliseconds: 500));
-    expect(find.text('운동 시작하기'), findsOneWidget);
+    // 협심증을 골랐으므로 혈압을 재기 전에 홈에서 바로 의사 확인 안내(5-1)
+    expect(find.text('병원 확인이 필요해요'), findsOneWidget);
 
     expect(h.server.bodies('POST /auth/otp/request').single, {'phone': '01011112222'});
     expect(h.server.bodies('POST /auth/otp/verify').last, {'phone': '01011112222', 'code': '123456', 'role': 'elder', 'name': '김영자', 'birth_year': 1952});
