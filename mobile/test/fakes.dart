@@ -11,6 +11,7 @@ import 'package:senior_coach/core/api.dart';
 import 'package:senior_coach/core/app_state.dart';
 import 'package:senior_coach/core/exercises.dart';
 import 'package:senior_coach/core/heart_rate.dart';
+import 'package:senior_coach/core/reminders.dart';
 import 'package:senior_coach/core/services.dart';
 import 'package:senior_coach/main.dart';
 
@@ -58,6 +59,24 @@ class FakeWatch implements HeartRateSource {
   void beat(int bpm) => _samples.add(HrSample(bpm, DateTime.now(), battery: 70));
 }
 
+class FakeReminders implements Reminders {
+  final opens = StreamController<int>.broadcast();
+  var permissionAsked = 0, cancelledDone = 0;
+  List<Reminder> scheduled = [];
+  @override
+  Future<bool> requestPermission() async {
+    permissionAsked++;
+    return true;
+  }
+
+  @override
+  Future<void> replace(List<Reminder> items) async => scheduled = items;
+  @override
+  Future<void> cancelDone() async => cancelledDone++;
+  @override
+  Stream<int> get opened => opens.stream;
+}
+
 class MemoryStore implements LocalStore {
   final data = <String, String>{};
   @override
@@ -82,6 +101,11 @@ class FakeServer {
       'GET /me': (_) => {'id': 1, 'name': '김영자', 'birth_year': 1952},
       'POST /me/consents': (_) => {'ok': true},
       'PUT /me/health': (_) => {'saved': true},
+      'PUT /me/settings': (_) => {'saved': true},
+      'GET /me/notifications': (_) => [
+            {'id': 41, 'at': '2099-01-01T09:00:00+09:00', 'text': '자, 오늘 3분만 해 볼까요?', 'intent': 'reminder', 'cancel_if_done': true},
+            {'id': 42, 'at': '2099-01-01T19:00:00+09:00', 'text': '오늘 1분만 해볼까요?', 'intent': 'evening_mini', 'cancel_if_done': true},
+          ],
       'GET /rules/safety': (_) => bundleBody,
       'GET /me/today': (_) => today(),
       'POST /me/prechecks': (b) => precheck('GREEN'),
@@ -152,6 +176,7 @@ class Harness {
   final dialer = FakeDialer();
   final store = MemoryStore();
   final watch = FakeWatch();
+  final reminders = FakeReminders();
   late final AppState state;
 
   Harness({bool loggedIn = true, bool withRules = true}) {
@@ -166,6 +191,7 @@ class Harness {
     state.name = '김영자';
     state.birthYear = 1952;
     state.exercises = exerciseLibrary;
+    state.reminders = reminders;
     if (withRules) state.rules = RuleBundle.fromEnvelope(bundleBody, requireApproved: false);
   }
 

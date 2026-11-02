@@ -235,6 +235,7 @@ class _SessionScreenState extends State<SessionScreen> {
     }
     try {
       final result = await finish;
+      app.reminders?.cancelDone(); // 오늘 했으면 저녁 '1분만' 알림 등은 지운다
       nav.pushReplacement(MaterialPageRoute(builder: (_) => CompleteScreen(result: result, startedAt: _startedAt, endedAt: DateTime.now())));
     } catch (e) {
       if (mounted) await showError(context, '운동은 끝났어요. 기록은 인터넷이 연결되면 다시 보내 주세요.');

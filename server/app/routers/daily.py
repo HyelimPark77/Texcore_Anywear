@@ -15,7 +15,7 @@ from safety_engine import Vitals
 
 from .. import models as m
 from ..deps import AppContext, ctx, elder_user, get_db
-from ..engines import build_history, induction_profile, ladder_state, record_message_use, safety_profile
+from ..engines import _as_aware, build_history, induction_profile, ladder_state, record_message_use, safety_profile
 from ..services import (ALL_SCOPES, FULL, alert_guardians, days_back, has_consent, plan_to_dict, run_daily_for,
                         today_rewards, user_state)
 
@@ -243,6 +243,19 @@ def week(user: m.User = Depends(elder_user), db: Session = Depends(get_db), c: A
         mins = sum(s.minutes for s in history.sessions if s.day == d and s.completed)
         days.append({"date": d, "stamp": r["stamp"], "reasons": r["reasons"], "minutes": round(mins)})
     return {"days": days, "streak": streak(history, day)}
+
+
+@router.get("/notifications")
+def upcoming(user: m.User = Depends(elder_user), db: Session = Depends(get_db), c: AppContext = Depends(ctx)):
+    """오늘 예약된 알림(유도 엔진이 정한 시각·문구, 하루 최대 2개). 앱이 기기 알림으로 걸어 둔다.
+    워치(SMART-TIME PRO)가 휴대폰 알림을 진동으로 전달하므로 워치 알림도 된다. 발송·취소 기록은 dispatch_due가 맡는다."""
+    day = c.clock.today()
+    run_daily_for(db, c, user, day)
+    rows = db.execute(select(m.Notification).where(
+        m.Notification.elder_id == user.id, m.Notification.day == day, m.Notification.cancelled.is_(False),
+        m.Notification.sent_at.is_(None)).order_by(m.Notification.scheduled_at)).scalars()
+    return [{"id": n.id, "at": _as_aware(n.scheduled_at).isoformat(), "text": n.text, "intent": n.intent,
+             "cancel_if_done": n.cancel_if_done} for n in rows]
 
 
 @router.post("/notifications/{notification_id}/opened")

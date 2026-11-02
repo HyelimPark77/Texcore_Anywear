@@ -5,6 +5,7 @@ import '../core/api.dart';
 import '../core/app_state.dart';
 import '../ui/kit.dart';
 import 'daily.dart';
+import 'habit.dart';
 
 // ---------------- 1. 시작·본인인증 ----------------
 class LoginScreen extends StatefulWidget {
@@ -142,7 +143,7 @@ class _BasicInfoScreenState extends State<BasicInfoScreen> {
           case 5:
             await app.saveHealth(_health);
             if (mounted) {
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => ParqScreen(health: _health)));
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => ParqScreen(health: _health, onboarding: true)));
             }
             return;
         }
@@ -263,7 +264,10 @@ const parqQuestions = [
 
 class ParqScreen extends StatefulWidget {
   final Map<String, dynamic> health;
-  const ParqScreen({super.key, required this.health});
+
+  /// 가입 중이면 끝나고 목표·알림 고르기로, 아니면(건강 정보에서 다시 답하기) 홈으로.
+  final bool onboarding;
+  const ParqScreen({super.key, required this.health, this.onboarding = false});
   @override
   State<ParqScreen> createState() => _ParqScreenState();
 }
@@ -289,7 +293,10 @@ class _ParqScreenState extends State<ParqScreen> {
     try {
       await app.saveHealth({...widget.health, 'parq_risk': _risk});
       await app.refreshRules();
-      if (mounted) goHome(context);
+      if (!mounted) return;
+      widget.onboarding
+          ? Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HabitSetupScreen(onboarding: true)))
+          : goHome(context);
     } catch (e) {
       if (mounted) showError(context, e);
     }

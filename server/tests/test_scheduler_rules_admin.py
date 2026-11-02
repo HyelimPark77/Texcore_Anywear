@@ -49,6 +49,19 @@ def test_dispatch_sends_due_and_cancels_after_exercise(w):
     assert [n.cancelled for n in _notes(w, uid)] == [False, True]
 
 
+def test_app_reads_todays_planned_notifications(w):
+    """앱은 오늘 예약된 알림을 받아 기기 알림으로 건다(워치 진동 전달). 보냈거나 취소된 것은 빠진다."""
+    admin = w.admin()
+    h, uid = w.elder(settings={"preferred_time": "09:00"})
+    w.at(hour=8)
+    got = w.client.get("/me/notifications", headers=h).json()
+    assert [n["intent"] for n in got] == ["reminder", "evening_mini"]
+    assert got[0]["at"].startswith(f"{w.ctx.clock.today().isoformat()}T09:00") and got[0]["text"]
+    w.at(hour=9)
+    w.client.post("/admin/jobs/dispatch", headers=admin)
+    assert [n["intent"] for n in w.client.get("/me/notifications", headers=h).json()] == ["evening_mini"]
+
+
 def test_ignored_notifications_reduce_to_one(w):
     admin = w.admin()
     h, uid = w.elder(settings={"preferred_time": "09:00"})

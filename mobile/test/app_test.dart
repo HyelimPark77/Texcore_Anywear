@@ -43,7 +43,16 @@ void main() {
     for (var i = 0; i < 7; i++) {
       await tapText(tester, '아니요');
     }
+    // 마지막: 목표·편한 시간·앵커(6-3·6-5)
+    await tapText(tester, '시장까지 걸어가기');
+    await tapText(tester, '오후 4시');
+    await tapText(tester, '혈압 잰 다음');
+    await tapText(tester, '저장하기');
     await tester.pump(const Duration(milliseconds: 500));
+    expect(h.server.bodies('PUT /me/settings').single,
+        {'preferred_time': '16:00', 'anchor': 'bp', 'goal': '시장까지 걸어가기', 'fall_concern': false});
+    expect(h.reminders.permissionAsked, 1);
+    expect(h.reminders.scheduled.map((r) => r.id), [41, 42]);
     // 협심증을 골랐으므로 혈압을 재기 전에 홈에서 바로 의사 확인 안내(5-1)
     expect(find.text('병원 확인이 필요해요'), findsOneWidget);
 

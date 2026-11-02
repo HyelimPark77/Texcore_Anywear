@@ -100,4 +100,38 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     expect(find.textContaining('몸 풀기 · 동작 1/'), findsOneWidget);
   });
+
+  testWidgets('홈에 오면 오늘 알림을 기기에 걸고, 누른 알림은 서버에 알린다', (tester) async {
+    final h = Harness();
+    await h.start(tester);
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(h.reminders.scheduled.map((r) => r.text), ['자, 오늘 3분만 해 볼까요?', '오늘 1분만 해볼까요?']);
+    h.reminders.opens.add(41);
+    await tester.pump();
+    expect(h.server.requests.where((r) => r.$1 == 'POST' && r.$2 == '/me/notifications/41/opened'), hasLength(1));
+  });
+
+  testWidgets('운동을 마치면 오늘 남은 알림(했으면 안 보내는 것)을 지운다', (tester) async {
+    final h = Harness();
+    await h.start(tester);
+    await toResult(tester);
+    await tapText(tester, '3분 시작하기');
+    await seconds(tester, 185);
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(h.reminders.cancelledDone, 1);
+  });
+
+  testWidgets('알림·목표는 홈에서 언제든 바꾼다', (tester) async {
+    final h = Harness();
+    h.state.settings = {'preferred_time': '09:00', 'anchor': 'time', 'goal': null, 'fall_concern': false};
+    await h.start(tester);
+    await tester.pump(const Duration(milliseconds: 600));
+    await tapText(tester, '알림·목표');
+    await tapText(tester, '저녁 6시');
+    await tapText(tester, '네, 붙잡을 곳이 있는 운동으로 해 주세요');
+    await tapText(tester, '저장하기');
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(h.server.bodies('PUT /me/settings').single, {'preferred_time': '18:00', 'anchor': 'time', 'goal': null, 'fall_concern': true});
+    expect(find.text('운동 시작하기'), findsOneWidget); // 홈으로 돌아옴
+  });
 }

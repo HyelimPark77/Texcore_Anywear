@@ -8,6 +8,7 @@ import '../core/heart_rate.dart';
 import '../core/vitals.dart';
 import '../ui/figure.dart';
 import '../ui/kit.dart';
+import 'habit.dart';
 import 'health.dart';
 import 'onboarding.dart';
 import 'session.dart';
@@ -32,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final w = app.watch;
       if (w != null && !w.realtime && !w.connected) WidgetsBinding.instance.addPostFrameCallback((_) => app.connectWatch());
       app.loadSteps();
+      app.syncReminders();
     }
   }
 
@@ -108,13 +110,14 @@ class _HomeScreenState extends State<HomeScreen> {
               const NoteRow(Icons.favorite, '가족이 응원을 보냈어요. 운동이 끝나면 들려 드릴게요.'),
             for (final p in prompts)
               if (_prompts[p] != null && p != 'play_guardian_cheer') NoteRow(Icons.chat_bubble_outline, _prompts[p]!),
-            if (t['ask_time_change'] == true) const NoteRow(Icons.schedule, '알림 시간이 불편하시면 보호자 연결 화면에서 바꿀 수 있어요.'),
+            if (t['ask_time_change'] == true) const NoteRow(Icons.schedule, '알림을 몇 번 못 보셨네요. 시간을 바꿔 볼까요? 아래 "알림·목표"에서 바꿀 수 있어요.'),
             if (app.watch != null) _WatchRow(app: app),
             const SizedBox(height: 20),
             TwoColumn(children: [
               _HomeLink(icon: Icons.calendar_month, label: '이번 주 기록', onTap: () => _push(context, const WeekScreen())),
               _HomeLink(icon: Icons.family_restroom, label: '보호자 연결', onTap: () => _push(context, const GuardianScreen())),
               _HomeLink(icon: Icons.medical_information, label: '내 건강 정보', onTap: () => _push(context, const HealthInfoScreen())),
+              _HomeLink(icon: Icons.notifications_active, label: '알림·목표', onTap: () => _push(context, const HabitSetupScreen())),
               _HomeLink(
                   icon: Icons.format_size, label: '글자 크기 ${((app.textScale - 1) / 0.25).round() + 1}단계', onTap: app.cycleTextScale),
             ]),
