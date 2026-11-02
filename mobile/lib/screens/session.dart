@@ -69,9 +69,10 @@ class _SessionScreenState extends State<SessionScreen> {
       if (!mounted) return;
       setState(() {
         _session = s;
-        // 워치가 연결돼 있으면 B 등급(경고용) 심박으로, 아니면 폰만으로(확인 질문 간격이 짧아짐).
+        // 워치가 실시간으로 연결돼 있으면 B 등급(경고용) 심박으로, 아니면 폰만으로(확인 질문 간격이 짧아짐).
+        // 건강 앱 경유 심박은 몇 분 늦어서 판정에 쓰지 않는다(늦은 값을 지금 값처럼 보면 안 됨).
         final w = app.watch;
-        _live = w != null && w.connected;
+        _live = w != null && w.connected && w.realtime;
         _monitor = SessionMonitor(rules, s['hr_limits']['ceiling'] as int, hrGrade: _live ? w!.grade : null, sink: _events.add);
         if (_live) _hrSub = w!.samples.listen((hr) => _pendingBpm = hr.bpm);
       });

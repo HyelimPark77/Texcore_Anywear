@@ -123,30 +123,40 @@ class SeniorScaffold extends StatelessWidget {
             : null,
         title: Semantics(header: true, child: Text(title, style: Theme.of(context).textTheme.titleLarge)),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(Sizes.gutter),
-          child: DefaultTextStyle.merge(style: const TextStyle(fontSize: Sizes.body), child: body),
+      // 빈 곳을 누르면 키보드를 내린다(아이폰 숫자 키패드에는 '완료' 키가 없다).
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        excludeFromSemantics: true, // 화면 읽기에는 '이름 없는 버튼'으로 잡히지 않게
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(Sizes.gutter),
+            child: DefaultTextStyle.merge(style: const TextStyle(fontSize: Sizes.body), child: body),
+          ),
         ),
       ),
+      // 하단 주 버튼은 키보드 위로 올라온다(bottomNavigationBar는 키보드에 가려지므로 키보드 높이만큼 띄움).
       bottomNavigationBar: (primaryLabel == null && secondaryLabel == null)
           ? null
-          : SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(Sizes.gutter, 8, Sizes.gutter, Sizes.gutter),
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  if (secondaryLabel != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: OutlinedButton(onPressed: onSecondary, child: Text(secondaryLabel!)),
-                    ),
-                  if (primaryLabel != null)
-                    FilledButton(
-                      onPressed: onPrimary,
-                      style: primaryColor == null ? null : FilledButton.styleFrom(backgroundColor: primaryColor),
-                      child: Text(primaryLabel!),
-                    ),
-                ]),
+          : Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(Sizes.gutter, 8, Sizes.gutter, Sizes.gutter),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    if (secondaryLabel != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: OutlinedButton(onPressed: onSecondary, child: Text(secondaryLabel!)),
+                      ),
+                    if (primaryLabel != null)
+                      FilledButton(
+                        onPressed: onPrimary,
+                        style: primaryColor == null ? null : FilledButton.styleFrom(backgroundColor: primaryColor),
+                        child: Text(primaryLabel!),
+                      ),
+                  ]),
+                ),
               ),
             ),
     );

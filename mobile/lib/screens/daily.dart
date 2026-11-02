@@ -418,6 +418,13 @@ class _GuardianScreenState extends State<GuardianScreen> {
       );
 }
 
+String _ago(DateTime at) {
+  final m = DateTime.now().difference(at).inMinutes;
+  if (m < 1) return '방금';
+  if (m < 60) return '$m분 전';
+  return '${m ~/ 60}시간 전';
+}
+
 /// 홈 화면 워치 상태: 큰 아이콘 + 상태 문장 + 연결 버튼(계획서 7-4: 연결 상태를 크게 보여 줌).
 class _WatchRow extends StatelessWidget {
   final AppState app;
@@ -437,7 +444,11 @@ class _WatchRow extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  on && app.lastHr != null ? '${app.watchStatus} · 심박 ${app.lastHr!.bpm}' : app.watchStatus,
+                  on && app.lastHr != null
+                      ? app.watch!.realtime
+                          ? '${app.watchStatus} · 심박 ${app.lastHr!.bpm}'
+                          : '건강 앱 · 최근 심박 ${app.lastHr!.bpm} (${_ago(app.lastHr!.at)})'
+                      : app.watchStatus,
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),

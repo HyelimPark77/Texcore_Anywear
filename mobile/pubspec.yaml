@@ -10,6 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_tts: ^4.2.5
+  health: ^13.3.2
   http: ^1.6.0
   safety_engine:
     path: ../safety_dart

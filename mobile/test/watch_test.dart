@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:senior_coach/core/heart_rate.dart';
 
 import 'app_test.dart' show toResult;
 import 'fakes.dart';
@@ -68,5 +69,92 @@ void main() {
     await tapText(tester, '3분 시작하기');
     await tester.pump(const Duration(seconds: 1));
     expect(find.textContaining('디즈먼트 워치'), findsNothing);
+  });
+
+  testWidgets('건강 앱 경유(실시간 아님): 홈에는 최근 심박, 운동 중 판정에는 안 씀', (tester) async {
+    final h = Harness();
+    h.watch.isRealtime = false;
+    await h.start(tester);
+    await tester.pump(const Duration(milliseconds: 600));
+    await tapText(tester, '워치 연결하기');
+    h.watch.beat(72);
+    await tester.pump();
+    expect(find.text('건강 앱 · 최근 심박 72 (방금)'), findsOneWidget);
+    await toResult(tester);
+    await tapText(tester, '3분 시작하기');
+    await beats(tester, h, 130, 3);                               // 늦은 값이 높아도 일시정지하지 않음
+    expect(find.textContaining('디즈먼트 워치 (실시간)'), findsNothing);
+    expect(find.text('잠깐 쉬는 중'), findsNothing);
+  });
+
+  group('HealthHeartRateSource', () {
+    final t0 = DateTime(2026, 11, 1, 9);
+    late List<HrSample> stored;
+    late List<(DateTime, DateTime)> asked;
+    late DateTime now;
+    HealthHeartRateSource make({bool allowed = true}) => HealthHeartRateSource(
+          authorize: () async => allowed,
+          read: (from, to) async {
+            asked.add((from, to));
+            return stored.where((s) => !s.at.isBefore(from) && s.at.isBefore(to)).toList();
+          },
+          now: () => now,
+        );
+
+    setUp(() {
+      stored = [];
+      asked = [];
+      now = t0;
+    });
+
+    test('연결하면 최근 2시간 중 가장 새 기록 하나를 낸다', () async {
+      stored = [HrSample(70, t0.subtract(const Duration(minutes: 30))), HrSample(75, t0.subtract(const Duration(minutes: 5)))];
+      final src = make();
+      final got = <int>[];
+      src.samples.listen((s) => got.add(s.bpm));
+      await src.connect();
+      await Future<void>.delayed(Duration.zero);
+      expect(got, [75]);
+      expect(asked.single.$1, t0.subtract(const Duration(hours: 2)));
+      expect(src.realtime, isFalse);
+      await src.close();
+    });
+
+    test('다음 조회는 마지막 기록 이후만, 새것이 없으면 아무것도 안 냄', () async {
+      stored = [HrSample(75, t0.subtract(const Duration(minutes: 5)))];
+      final src = make();
+      final got = <int>[];
+      src.samples.listen((s) => got.add(s.bpm));
+      await src.connect();
+      now = t0.add(const Duration(minutes: 1));
+      await src.poll();
+      stored.add(HrSample(81, t0.add(const Duration(seconds: 30))));
+      now = t0.add(const Duration(minutes: 2));
+      await src.poll();
+      await Future<void>.delayed(Duration.zero);
+      expect(got, [75, 81]);
+      expect(asked.last.$1, t0.subtract(const Duration(minutes: 5)));
+      await src.close();
+    });
+
+    test('권한을 거절하면 연결 실패와 안내', () async {
+      final src = make(allowed: false);
+      final msgs = <String>[];
+      src.status.listen(msgs.add);
+      await expectLater(src.connect(), throwsStateError);
+      await Future<void>.delayed(Duration.zero);
+      expect(src.connected, isFalse);
+      expect(msgs.last, '건강 앱 심박 읽기를 허용해 주세요');
+    });
+
+    test('기록이 하나도 없으면 동기화 안내', () async {
+      final src = make();
+      final msgs = <String>[];
+      src.status.listen(msgs.add);
+      await src.connect();
+      await Future<void>.delayed(Duration.zero);
+      expect(msgs.last, contains('SMART-TIME PRO를 열어 동기화'));
+      await src.close();
+    });
   });
 }
