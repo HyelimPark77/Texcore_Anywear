@@ -43,6 +43,7 @@ class _SessionScreenState extends State<SessionScreen> {
   int? _pendingBpm;
   StreamSubscription? _hrSub;
   String? _pauseCode;
+  DateTime? _startedAt; // 운동 후 워치 기록(건강 앱)을 이 시간대로 읽는다(W2)
   // 동작 안내: 세션 시간을 몸 풀기 → 본 운동 → 마무리 동작으로 나눈 표
   List<Segment> _plan = const [];
   int _seg = -1;
@@ -77,6 +78,7 @@ class _SessionScreenState extends State<SessionScreen> {
       if (!mounted) return;
       setState(() {
         _session = s;
+        _startedAt = DateTime.now();
         // 워치가 실시간으로 연결돼 있으면 B 등급(경고용) 심박으로, 아니면 폰만으로(확인 질문 간격이 짧아짐).
         // 건강 앱 경유 심박은 몇 분 늦어서 판정에 쓰지 않는다(늦은 값을 지금 값처럼 보면 안 됨).
         final w = app.watch;
@@ -233,7 +235,7 @@ class _SessionScreenState extends State<SessionScreen> {
     }
     try {
       final result = await finish;
-      nav.pushReplacement(MaterialPageRoute(builder: (_) => CompleteScreen(result: result)));
+      nav.pushReplacement(MaterialPageRoute(builder: (_) => CompleteScreen(result: result, startedAt: _startedAt, endedAt: DateTime.now())));
     } catch (e) {
       if (mounted) await showError(context, '운동은 끝났어요. 기록은 인터넷이 연결되면 다시 보내 주세요.');
       if (mounted) goHome(context);

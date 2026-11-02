@@ -8,7 +8,12 @@ import 'vitals.dart';
 
 final _health = Health();
 bool _configured = false;
-const _types = [HealthDataType.HEART_RATE, HealthDataType.BLOOD_PRESSURE_SYSTOLIC, HealthDataType.BLOOD_PRESSURE_DIASTOLIC];
+const _types = [
+  HealthDataType.HEART_RATE,
+  HealthDataType.BLOOD_PRESSURE_SYSTOLIC,
+  HealthDataType.BLOOD_PRESSURE_DIASTOLIC,
+  HealthDataType.STEPS,
+];
 
 Future<void> _setup() async {
   if (_configured) return;
@@ -16,7 +21,7 @@ Future<void> _setup() async {
   _configured = true;
 }
 
-/// 심박·혈압 읽기 권한 요청(한 번에). 아이폰은 사생활 보호 때문에 거절해도 true가 올 수 있다(그때는 기록이 비어서 온다).
+/// 심박·혈압·걸음 읽기 권한 요청(한 번에). 아이폰은 사생활 보호 때문에 거절해도 true가 올 수 있다(그때는 기록이 비어서 온다).
 Future<bool> authorizeHealth() async {
   await _setup();
   return _health.requestAuthorization(_types, permissions: [for (final _ in _types) HealthDataAccess.READ]);
@@ -50,4 +55,10 @@ Future<List<BpReading>> readBloodPressure(DateTime from, DateTime to) async {
         source: classifySource(s.sourceId, s.sourceName), sourceName: s.sourceName, pulse: pulse == null ? null : _num(pulse)));
   }
   return out;
+}
+
+/// [from, to) 걸음 수 합계(워치·폰 중복은 건강 앱이 정리해 준다). 기록이 없으면 null.
+Future<int?> readSteps(DateTime from, DateTime to) async {
+  await authorizeHealth();
+  return _health.getTotalStepsInInterval(from, to);
 }
