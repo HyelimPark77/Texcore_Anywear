@@ -95,13 +95,17 @@ void _checkBands(String name, List bands) {
 
 /// Python rules.validate()와 같은 검사. 단말도 번들을 받을 때 다시 검사한다.
 void validate(Map<String, dynamic> d) {
-  for (final key in ['meta', 'hard_gate', 'plausibility', 'source_grades', 'precheck', 'allowance', 'session', 'post', 'emergency']) {
+  for (final key in ['meta', 'hard_gate', 'plausibility', 'source_grades', 'low_grade_green', 'precheck', 'allowance', 'session', 'post', 'emergency']) {
     _require(d.containsKey(key), 'missing section: $key');
   }
   _require((d['meta']['version'] ?? '') != '', 'meta.version required');
   _require(['draft', 'approved'].contains(d['meta']['status']), 'meta.status must be draft|approved');
   if (d['meta']['status'] == 'approved') {
     _require((d['meta']['approved_by'] as List? ?? []).isNotEmpty, 'approved bundle needs approved_by');
+  }
+  // B 등급의 '초록'은 안전 근거가 아니므로 초록으로 둘 수 없다
+  for (final kind in ['blood_pressure', 'heart_rate']) {
+    _require(['YELLOW', 'REMEASURE', 'RED'].contains(d['low_grade_green'][kind]['light']), 'low_grade_green.$kind: must not be GREEN');
   }
   final pre = d['precheck'];
   for (final metric in ['systolic', 'diastolic', 'resting_hr']) {

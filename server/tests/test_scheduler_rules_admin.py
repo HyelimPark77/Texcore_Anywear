@@ -166,5 +166,5 @@ def test_admin_views(w):
     h, uid = w.elder()
     w.precheck(h, sbp=185)
     logs = w.client.get(f"/admin/decision-log?user_id={uid}&kind=pre_check", headers=admin).json()
-    assert logs[0]["payload"]["outcome"] == "RED" and logs[0]["rule_version"] == "0.1.0-draft"
+    assert logs[0]["payload"]["outcome"] == "RED" and logs[0]["rule_version"] == "0.2.0-draft"
     assert w.client.get("/admin/decision-log/verify", headers=admin).json() == {"ok": True, "broken_at": None}

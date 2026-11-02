@@ -32,13 +32,20 @@ class AppState extends ChangeNotifier {
   /// 건강 앱 혈압 기록 읽기(운동 전 점검 자동 채우기). 없으면 손으로만 넣는다.
   BpReader? readBp;
 
+  /// 건강 앱 심박 읽기(워치 맥박으로 맥박 칸 채우기).
+  HrReader? readHr;
+
   /// 오늘 점검에 쓸 혈압: 팔 혈압계 최근 기록은 채우고, 워치 혈압은 참고로만.
   Future<VitalsSnapshot> latestVitals() async {
     final read = readBp;
     if (read == null) return VitalsSnapshot.empty;
     final now = DateTime.now();
     try {
-      return pickVitals(await read(now.subtract(const Duration(hours: 12)), now).timeout(const Duration(seconds: 5)), now);
+      final from = now.subtract(const Duration(hours: 12));
+      final bp = await read(from, now).timeout(const Duration(seconds: 5));
+      final hr = await (readHr?.call(now.subtract(freshFor), now) ?? Future.value(<HrSample>[]))
+          .timeout(const Duration(seconds: 5), onTimeout: () => <HrSample>[]);
+      return pickVitals(bp, now, pulses: [for (final s in hr) (s.bpm, s.at)]);
     } catch (_) {
       return VitalsSnapshot.empty; // 못 읽으면 손으로 넣는다
     }

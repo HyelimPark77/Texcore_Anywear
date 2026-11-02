@@ -121,7 +121,7 @@ Decision preCheck(RuleBundle r, Profile profile, Vitals vitals,
   if (bpGrade == null || hrGrade == null) {
     throw ArgumentError('unknown measurement source: bp=${vitals.bpSource} hr=${vitals.hrSource}');
   }
-  final bpUsable = bpGrade == 'A';
+  final bpUsable = bpGrade == 'A' || bpGrade == 'B';
   if (!bpUsable) findings.add((Light.REMEASURE, Code.preBpSourceNotAllowed));
 
   // 5) 수치 밴드 + 의사 개인 한도
@@ -142,9 +142,11 @@ Decision preCheck(RuleBundle r, Profile profile, Vitals vitals,
     plausible[metric] = v;
     final band = _band(pre['bands'][metric] as List, v);
     final light = lightOf(band['light']);
-    if (metric == 'resting_hr' && hrGrade == 'B' && light == Light.GREEN) {
-      // B 등급(워치) 심박은 좋게 나와도 안전 근거로 쓰지 않는다.
-      findings.add((Light.REMEASURE, Code.preHrSourceLowGrade));
+    final grade = metric == 'resting_hr' ? hrGrade : bpGrade;
+    if (grade == 'B' && light == Light.GREEN) {
+      // B 등급(워치)은 좋게 나와도 안전 근거로 쓰지 않는다 → low_grade_green(초안: 노랑, 가볍게).
+      final alt = r['low_grade_green'][metric == 'resting_hr' ? 'heart_rate' : 'blood_pressure'];
+      findings.add((lightOf(alt['light']), alt['code'] as String));
     } else {
       findings.add((light, band['code'] as String));
     }

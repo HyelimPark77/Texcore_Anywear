@@ -37,6 +37,7 @@ class Code {
   static const preImplausibleValue = 'PRE_IMPLAUSIBLE_VALUE';
   static const preBpSourceNotAllowed = 'PRE_BP_SOURCE_NOT_ALLOWED';
   static const preHrSourceLowGrade = 'PRE_HR_SOURCE_LOW_GRADE';
+  static const preBpSourceLowGrade = 'PRE_BP_SOURCE_LOW_GRADE';
   static const preOverDoctorLimit = 'PRE_OVER_DOCTOR_LIMIT';
   static const doctorLimitLooserIgnored = 'DOCTOR_LIMIT_LOOSER_IGNORED';
 

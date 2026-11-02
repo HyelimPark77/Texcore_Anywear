@@ -33,7 +33,7 @@ void main() {
 
     // 규칙 번들: 서버 해시 = 단말 재계산 해시
     final bundle = RuleBundle.fromEnvelope(await api.rulesBundle(), requireApproved: false);
-    expect(bundle.version, '0.1.0-draft');
+    expect(bundle.version, '0.2.0-draft');
 
     final today = await api.today();
     expect(today['ladder']['minutes'], 3);

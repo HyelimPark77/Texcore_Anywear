@@ -43,8 +43,11 @@ Future<void> main() async {
     allowDraftRules: allowDraftRules,
     watch: watchSource(),
   );
-  // 건강 앱 경유일 때는 운동 전 점검의 혈압도 건강 앱 기록(팔 혈압계)으로 채운다
-  if (useHealth) state.readBp = readBloodPressure;
+  // 건강 앱 경유일 때는 운동 전 점검의 혈압·맥박도 건강 앱 기록(팔 혈압계, 없으면 워치)으로 채운다
+  if (useHealth) {
+    state.readBp = readBloodPressure;
+    state.readHr = readHeartRates;
+  }
   state.exercises = ExerciseLibrary.parse(await rootBundle.loadString('assets/exercises.json'));
   await state.restore();
   if (state.loggedIn) {

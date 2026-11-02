@@ -77,13 +77,18 @@ def _check_bands(name, bands):
 
 
 def validate(d):
-    for key in ("meta", "hard_gate", "plausibility", "source_grades", "precheck",
+    for key in ("meta", "hard_gate", "plausibility", "source_grades", "low_grade_green", "precheck",
                 "allowance", "session", "post", "emergency"):
         _require(key in d, f"missing section: {key}")
     _require(d["meta"].get("version"), "meta.version required")
     _require(d["meta"].get("status") in ("draft", "approved"), "meta.status must be draft|approved")
     if d["meta"]["status"] == "approved":
         _require(d["meta"].get("approved_by"), "approved bundle needs approved_by")
+
+    # B 등급의 '초록'은 안전 근거가 아니므로 초록으로 둘 수 없다
+    for kind in ("blood_pressure", "heart_rate"):
+        _require(d["low_grade_green"][kind]["light"] in ("YELLOW", "REMEASURE", "RED"),
+                 f"low_grade_green.{kind}: must not be GREEN")
 
     pre = d["precheck"]
     for metric in ("systolic", "diastolic", "resting_hr"):

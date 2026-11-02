@@ -21,7 +21,7 @@ void main() {
 
   test('서버 응답에서 번들 받기: draft는 운영에서 거부, 변조는 항상 거부', () {
     expect(() => RuleBundle.fromEnvelope(envelope), throwsA(isA<RuleError>()));
-    expect(RuleBundle.fromEnvelope(envelope, requireApproved: false).version, '0.1.0-draft');
+    expect(RuleBundle.fromEnvelope(envelope, requireApproved: false).version, '0.2.0-draft');
     final tampered = envelope.replaceFirst('"upper": 180', '"upper": 185');
     expect(tampered, isNot(envelope));
     expect(() => RuleBundle.fromEnvelope(tampered, requireApproved: false), throwsA(isA<RuleError>()));

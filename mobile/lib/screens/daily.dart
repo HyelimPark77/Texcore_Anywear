@@ -145,21 +145,23 @@ class _PrecheckScreenState extends State<PrecheckScreen> {
     setState(() {
       _loadingVitals = false;
       _vitals = v;
-      final r = v.fresh;
+      final r = v.fill; // 팔 혈압계(A) 우선, 없으면 워치(B)
       // 이미 손으로 넣기 시작했으면 덮어쓰지 않는다
       if (r != null && _sbp.text.isEmpty && _dbp.text.isEmpty && _hr.text.isEmpty) {
         _sbp.text = '${r.systolic}';
         _dbp.text = '${r.diastolic}';
         _bpSource = r.source;
-        if (r.pulse != null) {
-          _hr.text = '${r.pulse}';
-          _hrSource = r.source;
+        // 맥박: 혈압과 같이 잰 값, 없으면 워치 맥박
+        final pulse = r.pulse ?? v.watchPulse;
+        if (pulse != null) {
+          _hr.text = '$pulse';
+          _hrSource = r.pulse != null ? r.source : 'watch';
         }
         void toManual(TextEditingController c, String filled, void Function() set) =>
             c.addListener(() => c.text != filled ? set() : null);
         toManual(_sbp, _sbp.text, () => _bpSource = 'manual');
         toManual(_dbp, _dbp.text, () => _bpSource = 'manual');
-        if (r.pulse != null) toManual(_hr, _hr.text, () => _hrSource = 'manual');
+        if (pulse != null) toManual(_hr, _hr.text, () => _hrSource = 'manual');
       }
     });
   }
@@ -245,7 +247,7 @@ class _PrecheckScreenState extends State<PrecheckScreen> {
             setState(() => _step = 1);
           },
           body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Text(_vitals?.fresh != null ? '숫자가 맞으면 다음을 누르세요. 다르면 고쳐 주세요.' : '의자에 앉아 5분 쉰 뒤, 팔에 감는 혈압계로 재 주세요.'),
+            Text(_vitals?.fill != null ? '숫자가 맞으면 다음을 누르세요. 다르면 고쳐 주세요.' : '의자에 앉아 5분 쉰 뒤, 혈압을 재 주세요. 워치로 재도 괜찮아요.'),
             if (_loadingVitals) const Padding(padding: EdgeInsets.only(top: 12), child: Text('건강 앱 기록을 확인하는 중이에요')),
             if (_vitals != null) _VitalsNotes(_vitals!),
             const SizedBox(height: 16),
@@ -315,16 +317,19 @@ class _VitalsNotes extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fresh = v.fresh, stale = v.stale, watch = v.watch;
-    final watchHigh = watch != null && (watch.systolic >= watchHighSystolic || watch.diastolic >= watchHighDiastolic);
+    final fill = v.fill, watch = v.watch;
+    final pulseMissing = fill != null && fill.pulse == null && v.watchPulse == null;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      if (fresh != null)
-        _note(Icons.check_circle, '건강 앱의 혈압계 기록을 넣어 두었어요 (${fresh.sourceName}, ${_ago(fresh.at)})'
-            '${fresh.pulse == null ? '. 맥박은 직접 넣어 주세요' : ''}'),
-      if (fresh == null && stale != null) _note(Icons.schedule, '마지막 혈압계 기록이 ${_ago(stale.at)}이라 지금 다시 재 주세요.'),
-      if (watch != null)
-        _note(Icons.watch, '참고: 워치 혈압 ${watch.systolic}/${watch.diastolic} (${_ago(watch.at)}). 워치 혈압은 참고용이라 점검에는 쓰지 않아요.'),
-      if (watchHigh && fresh == null) _note(Icons.warning_amber, '워치 혈압이 높게 나왔어요. 팔에 감는 혈압계로 꼭 다시 재 주세요.', strong: true),
+      if (fill != null && fill.source != 'watch')
+        _note(Icons.check_circle, '건강 앱의 혈압계 기록을 넣어 두었어요 (${fill.sourceName}, ${_ago(fill.at)})'),
+      if (fill != null && fill.source == 'watch')
+        _note(Icons.watch, '워치에서 잰 혈압을 넣어 두었어요 (${_ago(fill.at)}). 워치는 조금 틀릴 수 있어서 오늘은 가볍게 하는 날로 정해요.'),
+      if (fill != null && fill.pulse == null && v.watchPulse != null) _note(Icons.favorite_border, '맥박은 워치 기록이에요 (${_ago(v.watchPulseAt!)})'),
+      if (pulseMissing) _note(Icons.edit, '맥박은 직접 넣어 주세요'),
+      if (fill == null && watch != null)
+        _note(Icons.schedule, '워치 혈압 기록이 ${_ago(watch.at)}이에요. 워치에서 혈압을 다시 재고 이 화면을 다시 열어 주세요.'),
+      if (fill == null && watch == null && v.stale != null)
+        _note(Icons.schedule, '마지막 혈압 기록이 ${_ago(v.stale!.at)}이라 지금 다시 재 주세요.'),
     ]);
   }
 }

@@ -8,7 +8,7 @@
 
 meta:
   rule_set: senior-exercise-safety
-  version: 0.1.0-draft
+  version: 0.2.0-draft
   status: draft            # draft | approved
   approved_by: []          # 예: [{name: "...", role: 순환기내과, date: 2026-11-01}]
   source: "외주 계획서 5장(운동 전·중·후 규칙) 초안"
@@ -35,17 +35,25 @@ plausibility:
   require_systolic_above_diastolic: true
 
 # 측정 출처 신뢰 등급 (7-3). C 등급은 판정에 쓰지 않는다.
-# A: 판정 사용 / B: 나쁜 쪽으로만 반영(좋게 나와도 안전 근거 아님) / C: 판정 사용 금지
+# A: 판정 사용 / B: 나쁜 쪽은 그대로 반영, 좋게 나오면 low_grade_green 으로(안전 근거로 쓰지 않음) / C: 판정 사용 금지
 source_grades:
   blood_pressure:
     manual: A              # 상완형 혈압계 값을 손으로 입력
     ble_upper_arm: A       # BLE 상완형 혈압계
-    watch: C               # 디즈먼트 혈압: 참고용 → 상완형 재측정 유도
+    # 발주사 결정(2026-11-02, 자문단 확인 필요): 혈압계가 없는 사용자가 많아 디즈먼트 혈압을 C → B.
+    # 오차(±10~15mmHg)가 커서 정상으로 나와도 '가볍게'(노랑)까지만 허용한다. 계획서 7-3 원안은 C(판정 금지).
+    watch: B
   heart_rate:
     manual: A
     ble_upper_arm: A       # 상완형 혈압계가 함께 재는 맥박
     chest_strap: A         # 표준 BLE 심박 센서
     watch: B               # 디즈먼트 심박
+
+# B 등급 값이 '초록' 구간일 때 대신 쓰는 판정.
+# 발주사 결정(2026-11-02, 자문단 확인 필요): 워치만 있는 사용자도 운동할 수 있게 심박도 재측정(REMEASURE) → 노랑.
+low_grade_green:
+  blood_pressure: {light: YELLOW, code: PRE_BP_SOURCE_LOW_GRADE}
+  heart_rate:     {light: YELLOW, code: PRE_HR_SOURCE_LOW_GRADE}
 
 # 5-2. 운동 전 판정 (앉아서 5분 쉰 뒤)
 precheck:
