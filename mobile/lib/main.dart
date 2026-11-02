@@ -10,8 +10,8 @@ import 'core/health_reader.dart';
 import 'core/heart_rate.dart';
 import 'core/reminders.dart';
 import 'core/services.dart';
-import 'screens/daily.dart';
 import 'screens/onboarding.dart';
+import 'screens/shell.dart';
 import 'ui/kit.dart';
 
 // 빌드 시 지정: flutter run --dart-define=API_BASE_URL=https://... --dart-define=ALLOW_DRAFT_RULES=true
